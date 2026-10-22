@@ -1,5 +1,7 @@
 // Widget „Klausuren“: Countdown bis zu den nächsten Klausuren mit der bisher
-// gelernten Zeit pro Fach (aus dem Lernzeit-Widget).
+// gelernten Zeit pro Fach (aus dem Lernzeit-Widget). Sitzt als Chip 🎓 in der
+// Kopfleiste und öffnet sich als Seitenleiste; der Chip kann die Tage bis zur
+// nächsten Klausur zeigen (Einstellung pro Gerät in ctx.cache 'showDays').
 //
 // Datenmodell (über ctx.store, wird synchronisiert):
 //   list: { [id]: { id, subjectId, date: 'YYYY-MM-DD', time: 'HH:MM' | '', location, note,
@@ -33,7 +35,8 @@ const wall = (date, time = '00:00') => Date.UTC(+date.slice(0, 4), +date.slice(5
 const calendarDays = (from, to) => Math.round((wall(to) - wall(from)) / DAY);
 const addDays = (date, n) => new Date(wall(date) + n * DAY).toISOString().slice(0, 10);
 
-const dateFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const dateFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+const HIGHLIGHT_DAYS = 14;
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const pad = n => String(n).padStart(2, '0');
@@ -82,11 +85,42 @@ export function statusOf(exam, t = Date.now()) {
   return { term, countdown: countdownFor(term, t), past: !upcoming };
 }
 
+// Nächste Klausur über alle Fächer: früheste noch anstehende Termin-Variante
+// (gewählter Termin bzw. bei „noch offen“ der frühere noch anstehende).
+export function nextExam(exams, t = Date.now()) {
+  let best = null;
+  for (const exam of Object.values(exams)) {
+    if (exam.deleted) continue;
+    const status = statusOf(exam, t);
+    if (status.past) continue;
+    const key = wall(status.term.date, status.term.time || '00:00');
+    if (!best || key < best.key) best = { exam, ...status, key };
+  }
+  return best;
+}
+
+// Kurzform für den Chip: „107 Tage“, unter einer Woche „4 Tage 18 Std“.
+export function chipCountdown(term, t = Date.now()) {
+  const now = berlinNow(t);
+  const days = calendarDays(now.date, term.date);
+  if (days >= 7) return `${days} Tage`;
+  if (!term.time) return days === 0 ? 'heute' : days === 1 ? 'morgen' : `${days} Tage`;
+  const diff = wall(term.date, term.time) - wall(now.date, now.time);
+  const d = Math.floor(diff / DAY);
+  const hours = Math.floor((diff % DAY) / HOUR);
+  const minutes = Math.floor((diff % HOUR) / 60000);
+  if (d > 0) return `${plural(d, 'Tag', 'Tage')} ${hours} Std`;
+  if (hours > 0) return `${hours} Std ${minutes} min`;
+  return `${minutes} min`;
+}
+
 const termLine = term => [dateFmt.format(wall(term.date)), term.time && `${term.time} Uhr`, term.location].filter(Boolean).join(' · ');
 
 export default {
   id: 'exams',
   title: 'Klausuren',
+  icon: '🎓',
+  placement: 'drawer',
 
   async render(container, ctx) {
     let exams = await ctx.store.load('list', {});
@@ -95,9 +129,38 @@ export default {
     let editing = null; // id der bearbeiteten Klausur oder 'new'
     let pastOpen = false; // Bereich „Vergangen“ bleibt beim Neuzeichnen auf/zu
 
+    let showDays = await ctx.cache.load('showDays', true);
+
     const listEl = h('div', { class: 'exam-list' });
     const formSlot = h('div', { class: 'exam-form-slot' });
-    container.append(formSlot, listEl);
+    // Nächste Klausur als Text (für das iPad, wo es keine Tooltips gibt) und Chip-Einstellung
+    const summary = h('p', { class: 'exam-summary' });
+    const showDaysInput = h('input', { type: 'checkbox', checked: showDays });
+    showDaysInput.addEventListener('change', async () => {
+      showDays = showDaysInput.checked;
+      await ctx.cache.save('showDays', showDays);
+      updateChip();
+    });
+    container.append(summary,
+      h('label', { class: 'pomo-check exam-setting' }, showDaysInput, 'Tage bis zur nächsten Klausur im Chip anzeigen (dieses Gerät)'),
+      formSlot, listEl);
+
+    // Chip in der Kopfleiste und Zusammenfassung oben in der Ansicht
+    function updateChip() {
+      const next = nextExam(exams);
+      if (!next) {
+        summary.textContent = 'Keine anstehende Klausur.';
+        ctx.setBadge('', { title: 'Klausuren – keine anstehende Klausur' });
+        return;
+      }
+      const name = subjectOf(next.exam.subjectId).name;
+      const soon = next.countdown.days <= HIGHLIGHT_DAYS;
+      const text = `Nächste Klausur: ${name} ${next.countdown.text} (${dateFmt.format(wall(next.term.date))}${next.term.time ? `, ${next.term.time} Uhr` : ''})`;
+      const hint = soon ? ` – hervorgehoben, weil es weniger als ${HIGHLIGHT_DAYS} Tage sind` : '';
+      summary.textContent = `${text}${hint}.`;
+      summary.classList.toggle('is-soon', soon);
+      ctx.setBadge(showDays ? chipCountdown(next.term) : '', { highlight: soon, title: `${text}${hint}` });
+    }
     ctx.addAction('+ Klausur', () => { editing = editing === 'new' ? null : 'new'; draw(); }, 'Klausur hinzufügen');
 
     const activeSubjects = () => Object.values(subjects).filter(s => !s.deleted).sort((a, b) => a.name.localeCompare(b.name, 'de'));
@@ -267,6 +330,7 @@ export default {
     };
 
     function draw() {
+      updateChip();
       formSlot.replaceChildren(...(editing === 'new' ? [examForm({})] : []));
       const key = e => { const { term } = statusOf(e); return `${term.date}T${term.time || '99'}`; };
       const all = Object.values(exams).filter(e => !e.deleted).sort((a, b) => key(a).localeCompare(key(b)));
@@ -299,7 +363,7 @@ export default {
     ctx.store.subscribe('list', v => { exams = v ?? {}; if (!isEditing()) draw(); });
     ctx.onCleanup(subscribe(SUBJECTS_KEY, v => { subjects = v ?? {}; if (!isEditing()) draw(); }));
     ctx.onCleanup(subscribe(SESSIONS_KEY, v => { sessions = v ?? {}; if (!isEditing()) draw(); }));
-    ctx.every(60 * 1000, () => { if (!isEditing()) draw(); });
+    ctx.every(60 * 1000, () => { if (!isEditing()) draw(); else updateChip(); });
 
     draw();
   },

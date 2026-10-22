@@ -50,7 +50,8 @@ Jede Kachel lässt sich über ihren Titel (mit Pfeil) ein- und ausklappen. Beim 
      icon: '✨',                  // optional
      placement: 'grid',          // optional: 'grid' (Kachel), 'hero' (Kopfbereich links),
                                  //           'header' (kompakt oben rechts) oder
-                                 //           'drawer' (Seitenleiste, Button oben öffnet sie)
+                                 //           'drawer' (Seitenleiste, Chip oben öffnet sie;
+                                 //           mit icon zeigt der Chip das Symbol statt des Titels)
      size: 'normal',             // optional, nur für 'grid': 'normal' oder 'wide' (2 Spalten)
      startOpen: false,           // optional, nur für 'grid': beim ersten Öffnen ausgeklappt?
      refreshInterval: 60_000,    // optional, in ms: ruft regelmäßig refresh() auf
@@ -79,7 +80,7 @@ Das `ctx`-Objekt bietet:
 | `ctx.setStatus(text)` | Fußzeile der Kachel (z. B. „Aktualisiert 13:20 Uhr“), bei kompakten Widgets als Tooltip |
 | `ctx.refresh()` | Widget neu laden |
 | `ctx.root` | Das äußere Element des Widgets |
-| `ctx.setBadge(text)` | Kleiner Status neben dem Kacheltitel (z. B. laufender Timer), leer = ausgeblendet |
+| `ctx.setBadge(text, { highlight, title })` | Kleiner Status neben dem Kacheltitel (z. B. laufender Timer), leer = ausgeblendet; bei Seitenleisten-Widgets auch im Chip der Kopfleiste, `highlight` hebt den Chip hervor, `title` ist sein Tooltip |
 | `ctx.onCleanup(fn)` | Funktion, die beim Neuaufbau des Widgets aufgerufen wird (z. B. Abo auf Schlüssel eines anderen Widgets abmelden) |
 
 Wirft `render()` oder `refresh()` einen Fehler, zeigt das Widget eine Fehlermeldung mit „Erneut versuchen“ (kompakte Widgets als kleinen Button), und der Rest der Seite läuft weiter. Für Netzwerkzugriffe `fetchJSON()` aus `js/core/http.js` verwenden.
@@ -121,6 +122,8 @@ Die Lernzeit liegt in einer Seitenleiste: Der Button „Lernzeit“ oben rechts 
 - Daten: `habits.list` (Gewohnheiten) und `habits.days` mit einem Eintrag pro Gewohnheit und Tag (`<id>|JJJJ-MM-TT`, Tagesgrenze Europe/Berlin) inklusive Zeitstempel. Streaks werden immer daraus berechnet. Weil jeder Tag ein eigener Eintrag ist, führt der Gist-Sync Abhaken auf mehreren Geräten tageweise zusammen; auch ein Rückgängigmachen (`done: false`) kommt auf allen Geräten an.
 
 ## Klausuren
+
+Die Klausuren sitzen als Chip „🎓“ oben in der Kopfleiste; ein Klick öffnet sie als Seitenleiste (schließen mit ×, Esc oder Klick daneben). Oben in der Ansicht steht die nächste Klausur als Text, darunter die Einstellung „Tage bis zur nächsten Klausur im Chip anzeigen“ (pro Gerät, Standard: an). Ist sie an, zeigt der Chip z. B. „🎓 107 Tage“, unter einer Woche „4 Tage 18 Std“. Als nächste Klausur zählt der früheste noch anstehende Termin über alle Fächer – bei entschiedenem Termin nur der gewählte, bei „noch nicht entschieden“ der frühere noch anstehende. In den letzten 14 Tagen davor ist der Chip farbig hervorgehoben; die Begründung steht im Tooltip und (für das iPad) oben in der Ansicht. Datumsangaben erscheinen als Tag.Monat.Jahr.
 
 - Über „+ Klausur“ anlegen: Fach (aus derselben Fächerliste wie die Lernzeit; „+ Neues Fach …“ legt es dort direkt mit an), Datum, optional Uhrzeit, Ort und Notiz. Ein Datum in der Vergangenheit wird nur nach „Trotzdem speichern“ übernommen.
 - **2. Termin:** Optional lässt sich ein zweiter Termin eintragen (muss nach dem ersten liegen). Solange du dich nicht entschieden hast, zeigt die Klausur beide Termine mit eigenem Countdown und die Knöpfe „1. Termin schreiben“ / „2. Termin schreiben“; Countdown und Sortierung richten sich nach dem nächsten anstehenden Termin. Nach der Entscheidung zählt nur der gewählte Termin; „ändern“ setzt sie zurück. Ist der 1. Termin vorbei und noch nichts entschieden, bleibt die Klausur mit dem 2. Termin in der Liste.

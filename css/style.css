@@ -1069,3 +1069,15 @@ html.drawer-open { overflow: hidden; }
 .exam-term-label { grid-area: label; }
 .exam-term-countdown { grid-area: count; }
 .exam-term-when { grid-area: when; }
+
+/* Chip mit Symbol (z. B. Klausuren) */
+.drawer-toggle--icon { padding: 0 12px; gap: 6px; }
+.drawer-toggle-icon { font-size: 1.1rem; line-height: 1; }
+.drawer-toggle.is-highlight { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.drawer-toggle.is-highlight .drawer-toggle-badge { color: var(--accent); }
+.drawer-toggle--icon .drawer-toggle-badge { color: var(--text); font-weight: 500; }
+
+.exam-summary { margin: 0 0 8px; font-size: 0.9rem; }
+.exam-summary.is-soon { color: var(--accent); font-weight: 500; }
+.exam-setting { margin-bottom: 12px; font-size: 0.88rem; color: var(--muted); }
+.drawer-toggle--icon.is-highlight .drawer-toggle-badge { color: var(--accent); font-weight: 600; }

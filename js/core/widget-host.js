@@ -22,7 +22,7 @@ export function mountWidget(slots, widget) {
   let actions = null;
   let status = null;
   let badge = null;
-  let toggleBadge = null;
+  let chip = null; // Button in der Kopfleiste bei placement 'drawer'
 
   if (compact) {
     root = h('div', { class: `slot-widget slot-widget--${placement}`, 'data-widget': widget.id }, body);
@@ -49,7 +49,7 @@ export function mountWidget(slots, widget) {
         close),
       body,
       status);
-    if (placement === 'drawer') toggleBadge = mountDrawer(slots, widget, root, close);
+    if (placement === 'drawer') chip = mountDrawer(slots, widget, root, close);
     if (placement === 'grid') setupCollapse(widget, root, title.querySelector('.card-collapse'));
   }
   if (placement !== 'drawer') (slots[placement] ?? slots.grid).append(root);
@@ -93,11 +93,17 @@ export function mountWidget(slots, widget) {
     },
     // Fußzeile der Kachel; bei kompakten Widgets als Tooltip.
     // Kleiner Status neben dem Kacheltitel (z. B. laufender Timer); leer = ausgeblendet.
-    setBadge(text) {
-      if (!badge) return;
-      for (const el of [badge, toggleBadge].filter(Boolean)) {
+    // Bei Seitenleisten-Widgets erscheint er auch im Chip der Kopfleiste;
+    // highlight hebt den Chip farbig hervor, title ist dessen Tooltip.
+    setBadge(text, { highlight = false, title = null } = {}) {
+      for (const el of [badge, chip?.badge].filter(Boolean)) {
         if (el.textContent !== (text ?? '')) el.textContent = text ?? '';
         el.hidden = !text;
+      }
+      if (chip) {
+        chip.toggle.classList.toggle('is-highlight', highlight);
+        chip.toggle.title = title ?? widget.title;
+        chip.toggle.setAttribute('aria-label', text ? `${widget.title}: ${text}` : widget.title);
       }
     },
     setStatus(text) {
@@ -179,11 +185,14 @@ function setupCollapse(widget, card, button) {
   });
 }
 
-// Seitenleiste von rechts plus Button in der Kopfleiste; gibt das Status-Feld des Buttons zurück.
+// Seitenleiste von rechts plus Chip in der Kopfleiste; gibt { toggle, badge } des Chips zurück.
+// Mit widget.icon zeigt der Chip das Symbol, sonst den Titel.
 function mountDrawer(slots, widget, card, close) {
   const toggleBadge = h('span', { class: 'drawer-toggle-badge', hidden: true });
-  const toggle = h('button', { class: 'drawer-toggle', type: 'button', 'aria-expanded': 'false', 'aria-controls': `drawer-${widget.id}` },
-    h('span', {}, widget.title), toggleBadge);
+  const toggle = h('button', {
+    class: `drawer-toggle${widget.icon ? ' drawer-toggle--icon' : ''}`, type: 'button',
+    'aria-expanded': 'false', 'aria-controls': `drawer-${widget.id}`, 'aria-label': widget.title, title: widget.title,
+  }, widget.icon ? h('span', { class: 'drawer-toggle-icon', 'aria-hidden': 'true' }, widget.icon) : h('span', {}, widget.title), toggleBadge);
   const backdrop = h('div', { class: 'drawer-backdrop' });
   const panel = h('div', { class: 'drawer-panel', role: 'dialog', 'aria-label': widget.title, tabindex: -1 }, card);
   const drawer = h('aside', { class: 'drawer', id: `drawer-${widget.id}`, inert: true }, backdrop, panel);
@@ -204,7 +213,7 @@ function mountDrawer(slots, widget, card, close) {
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && drawer.classList.contains('is-open')) setOpen(false);
   });
-  return toggleBadge;
+  return { toggle, badge: toggleBadge };
 }
 
 function showError(body, err, retry, compactTitle) {
