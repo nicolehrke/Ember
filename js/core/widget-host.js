@@ -165,12 +165,7 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 let openStatePromise = null;
 const openState = () => (openStatePromise ??= load(OPEN_KEY, {}));
 
-// Leerer Zustand im Hauptbereich, wenn keine Kachel sichtbar ist.
-function updateEmpty(slots) {
-  if (slots.empty) slots.empty.hidden = Boolean(slots.grid.querySelector('.card:not([hidden])'));
-}
-
-// Button in der Dock-Leiste; gibt { button, badge } zurück.
+// Button in der Dock-Leiste (nur Symbol, Beschriftung als Tooltip/aria-label); gibt { button, badge } zurück.
 function mountDockButton(slots, widget, card, close) {
   const dockBadge = h('span', { class: 'dock-badge', hidden: true });
   const button = h('button', {
@@ -178,7 +173,6 @@ function mountDockButton(slots, widget, card, close) {
     'aria-label': widget.dock.label, title: widget.dock.label,
   },
   h('span', { class: 'dock-icon', 'aria-hidden': 'true' }, widget.dock.icon),
-  h('span', { class: 'dock-label' }, widget.dock.label),
   dockBadge);
   slots.dock.append(button);
 
@@ -205,14 +199,12 @@ function mountDockButton(slots, widget, card, close) {
         card.classList.remove('is-leaving');
         // Wurde währenddessen wieder geöffnet, nicht verstecken.
         if (button.getAttribute('aria-pressed') === 'false') card.hidden = true;
-        updateEmpty(slots);
       };
       card.addEventListener('animationend', finish, { once: true });
       setTimeout(finish, 250);
     } else {
       card.hidden = true;
     }
-    updateEmpty(slots);
 
     if (persist) {
       openState().then(state => {

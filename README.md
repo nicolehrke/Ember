@@ -37,9 +37,9 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Klausuren, Gewohnheiten und Mensa sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Buttons unter der Uhr (oder über das × in der Kachel). Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, erscheint ein kurzer Hinweis.
+Lernzeit, Klausuren, Gewohnheiten und Mensa sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Symbol-Buttons unter der Uhr (⏱ Lernzeit, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
 
-Die Dock-Buttons zeigen auch bei geschlossener Kachel ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben), Gewohnheiten „2/3 heute“.
+Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben), Gewohnheiten „2/3 heute“.
 
 Welche Kacheln offen sind, speichert jedes Gerät für sich in `local/open` (wird nicht synchronisiert), damit Mac und iPad unterschiedliche Ansichten haben können. Ohne gespeicherten Zustand sind Mensa und Gewohnheiten offen.
 

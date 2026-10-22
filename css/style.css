@@ -1016,7 +1016,9 @@ input[type="number"] {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0 16px 0 12px;
+  min-width: 44px;
+  justify-content: center;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
@@ -1056,20 +1058,10 @@ input[type="number"] {
   .card.is-entering, .card.is-leaving { animation: none; }
 }
 
-.grid-empty {
-  max-width: 1240px;
-  margin: 8px auto 0;
-  padding: 40px 16px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  text-align: center;
-  color: var(--muted);
-}
-.grid-empty[hidden] { display: none; }
 
 @media (max-width: 480px) {
   .dock { gap: 6px; }
-  .dock-btn { padding: 0 12px 0 10px; font-size: 0.9rem; }
+  .dock-btn { padding: 0 10px; font-size: 0.9rem; }
 }
 .card-header { flex-wrap: wrap; }
 .card-header .card-actions { flex-wrap: wrap; justify-content: flex-end; }
