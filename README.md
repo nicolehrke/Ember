@@ -16,14 +16,18 @@ Danach <http://localhost:8000> öffnen. Jeder andere statische Server (z. B. `np
 
 ```
 index.html              Einstiegsseite
-css/style.css           Gesamtes Styling inkl. Hell/Dunkel-Modus
+css/style.css           Grundgerüst: Variablen (Werte von „Glut“), Layout, alle Widgets
+css/styles/<stil>.css   Ein Stil pro Datei (glut, glas, papier, jarvis), nur der aktive wird geladen
 js/main.js              Startpunkt: Migrationen, Theme, Einstellungen, Widgets, Sync
 js/core/storage.js      Speicher-Schicht (einzige Stelle mit localStorage)
 js/core/sync.js         Sync zwischen Geräten über ein GitHub Gist
 js/core/settings.js     Einstellungs-Panel (⚙︎) zum Verbinden des Syncs
 js/core/migrations.js   Einmalige Aufräumarbeiten nach Umbauten
 js/core/widget-host.js  Baut Kacheln, ruft Widgets auf, fängt Fehler ab
-js/core/theme.js        Umschaltung System / Hell / Dunkel
+js/core/theme.js        Stil, Hell/Dunkel und Tageszeit-Akzente, Stil-Menü (Palettensymbol)
+js/theme/palettes.js    Alle Stile: Phasen, Farb-Stützpunkte über den Tag, Schriften
+js/core/briefing.js     Briefing-Satz neben der Uhr und Fokus-Modus
+js/core/icons.js        Liniensymbole für Dock und Kopfleiste
 js/core/popover.js      Aufklapp-Panels (Wetter, Stundenplan, Einstellungen)
 js/core/http.js         fetchJSON()/fetchText() mit Timeout und verständlichen Fehlern
 js/core/ical.js         Schlanker iCal-Parser inkl. Wiederholungen und Zeitzonen
@@ -43,7 +47,7 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen und Musik sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Symbol-Buttons unter der Uhr (⏱ Lernzeit, 📋 Aufgaben, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa, 🛒 Einkaufsliste, 📝 Notizen, 🎵 Musik; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
+Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen und Musik sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Liniensymbolen und Beschriftung unter der Uhr (Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkauf, Notizen, Musik), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer. Jede Kachel hat im Kopf einen Umschalter S/M/L für ihre Größe (siehe „Design & Stile“).
 
 Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben). Gewohnheiten und Mensa zeigen nur ihr Symbol.
 
@@ -57,11 +61,12 @@ Welche Kacheln offen sind, speichert jedes Gerät für sich in `local/open` (wir
    export default {
      id: 'mein-widget',          // eindeutig, dient auch als Speicher-Namespace
      title: 'Mein Widget',
-     icon: '✨',                  // optional
+     icon: '✨',                  // optional, Zeichen vor dem Kacheltitel
      placement: 'grid',          // optional: 'grid' (Kachel), 'hero' (Kopfbereich links)
                                  //           oder 'header' (kompakt oben rechts)
-     size: 'normal',             // optional, nur für 'grid': 'normal' oder 'wide' (2 Spalten)
-     dock: { icon: '✨', label: 'Mein Widget' }, // optional: Button im Dock öffnet/schließt die Kachel
+     size: 's',                  // optional, nur für 'grid': Standardgröße 's', 'm' oder 'l'
+     dock: { icon: 'notes', label: 'Mein Widget' }, // optional: Button im Dock öffnet/schließt die Kachel;
+                                 // icon ist ein Name aus js/core/icons.js
      defaultOpen: false,         // optional, mit dock: ohne gespeicherten Zustand geöffnet?
      refreshInterval: 60_000,    // optional, in ms: ruft regelmäßig refresh() auf
 
@@ -90,15 +95,45 @@ Das `ctx`-Objekt bietet:
 | `ctx.refresh()` | Widget neu laden |
 | `ctx.root` | Das äußere Element des Widgets |
 | `ctx.setBadge(text, { highlight, title })` | Kleiner Status (z. B. laufender Timer), leer = ausgeblendet. Bei Dock-Widgets erscheint er am Dock-Button (auch bei geschlossener Kachel), `highlight` hebt den Button hervor, `title` ist sein Tooltip; sonst neben dem Kacheltitel |
+| `ctx.setEmpty(empty)` | Kachel als leer markieren (z. B. keine Einträge): sie schrumpft dann auf ihren Inhalt |
 | `ctx.onCleanup(fn)` | Funktion, die beim Neuaufbau des Widgets aufgerufen wird (z. B. Abo auf Schlüssel eines anderen Widgets abmelden) |
 
 Wirft `render()` oder `refresh()` einen Fehler, zeigt das Widget eine Fehlermeldung mit „Erneut versuchen“ (kompakte Widgets als kleinen Button), und der Rest der Seite läuft weiter. Für Netzwerkzugriffe `fetchJSON()` aus `js/core/http.js` verwenden.
+
+## Design & Stile
+
+Ember hat vier Stile, umschaltbar über das Palettensymbol oben rechts. Das Menü zeigt jeden Stil mit Mini-Farbvorschau und der aktuellen Tageszeit-Phase, darunter den Schalter System / Hell / Dunkel. Die Wahl liegt unter `design` (`{ style, mode }`) und wird wie andere Einstellungen über das Gist synchronisiert; die frühere Hell/Dunkel-Wahl (`local/theme`) wird beim ersten Start übernommen. Standard: Glut, hell oder dunkel nach Systemeinstellung.
+
+| Stil | Modus | Kennzeichen | Phasen |
+| --- | --- | --- | --- |
+| **Glut** | hell & dunkel | warmer dunkler Grund mit atmendem Glühen oben links, dunkle Karten (Radius 20 px), Dock mit Symbol über Label; hell: warmes Papier, Akzent abgedunkelt, Glühen halbiert | Funke 5–10, Flamme 10–15, Glut 15–19, Dämmerung 19–23, Asche 23–5 |
+| **Glas** | nur dunkel | drei große Verlaufsflächen nach Tageszeit, Kacheln aus Milchglas (Radius 30 px), Dock als Glaskapsel, weiße primäre Buttons, Briefing-Teile als helle Pillen | Zitrus 5–10, Kobalt 10–16, Orchidee 16–19, Beere 19–23, Eis 23–5 |
+| **Papier** | nur hell | warmer Papiergrund ohne Glühen und Kartenflächen, Kacheln durch eine Linie oben getrennt, Newsreader für Uhr, Satz und Titel, ein Tinten-Akzent pro Phase, Dock als Textleiste, alle Radien 0 | wie Glas |
+| **Jarvis** | nur dunkel | Gitter auf fast Schwarz, Eckklammern an den Kacheln, JetBrains Mono für Titel und Briefing, Uhr in Rajdhani mit rotierendem HUD-Ring, Outline-Buttons mit Leuchten | wie Glas |
+
+Bei Glas, Papier und Jarvis wird der Modus erzwungen; der Hell/Dunkel-Schalter ist dann mit Hinweis gesperrt.
+
+**Aufbau.** Auf `<html>` sitzen `data-style` und `data-theme` (`dark` | `light`). Alle Farben, Radien, Schatten und Schriften laufen über CSS-Variablen; die Grundwerte in `css/style.css` entsprechen Glut dunkel, `css/styles/<stil>.css` überschreibt sie. `js/core/theme.js` lädt nur die Datei und die Google-Fonts des aktiven Stils (mit System-Schriften als Fallback). Widgets enthalten keine festen Farben; Ausnahmen sind frei gewählte Fach- und Gewohnheitsfarben (Daten) und das Spotify-Grün.
+
+**Tageszeit-Akzente.** Minütlich interpoliert `theme.js` aus den Stützpunkten in `js/theme/palettes.js` linear `--ui` (Akzent), `--glow-rgb` (Leuchtfarbe) und `--k` (Glühstärke); `--breath` ist 9 s am Tag, 11 s am Abend und 14 s in der Nacht. Dem Akzent folgen nur Atmosphäre, primäre Buttons, das aktive Dock-Symbol und Fortschrittsringe. Statusfarben (`--ok`, `--danger`, `--warn`) bleiben fest. Neue Farben oder Phasen nur in `palettes.js` eintragen.
+
+**Kontrast.** Text auf Fläche hält in allen Stilen und Phasen mindestens 4.5:1, geprüft für jede 5-Minuten-Stufe des Tages. Dafür ist der Glut-Akzent im Hellen stärker abgedunkelt (45 % Akzent + Braun), der nächtliche Glut-Akzent etwas heller, im Stil Glas sind die Glasflächen leicht getönt, die Verlaufsflächen gedämpft und Akzent sowie Statusfarben aufgehellt.
+
+**Kopf und Briefing.** Links Uhr und Datum, rechts daneben (unter 900 px darunter) ein Satz aus festen Vorlagen, ohne KI (`js/core/briefing.js`). Quellen sind der nächste Stundenplan-Termin, das Mensa-Gericht von heute, die gelernte Zeit heute und diese Woche, die nächste Klausur und offene Einkaufs- und Aufgaben-Einträge; die Widgets melden diese Werte mit `setFact()`. Pro Tageszeit gibt es mehrere Vorlagen, gewählt wird beim Laden und beim Phasenwechsel, nie dieselbe wie zuletzt (`local/briefing`).
+
+**Ruhe und Fokus.** Läuft Pomodoro, ein Countdown-Timer oder der freie Lerntimer, wechselt Ember in den Fokus: Die Lernzeit wird zur großen Kachel mit Ring und Zeit, die übrigen Kacheln gehen auf 36 % Deckkraft (beim Darüberfahren wieder voll), die Uhr auf 50 %, das Glühen wandert in die Mitte und statt des Briefings steht ein Fokus-Satz. Danach geht es automatisch zurück in die Ruhe.
+
+**Kachelgrößen.** S (eine Zelle), M (zwei breit) und L (zwei breit, zwei hoch) im 4-Spalten-Raster, unter 900 px 2 Spalten, unter 560 px eine Spalte (M und L dann doppelt hoch). S zeigt Kennzahl und Hauptaktion, M mehr Details, L zusätzlich Wochenbalken und Verlauf (z. B. Lernzeit: S Timer und Summen, M mit Modus-Umschalter, L mit Wochenbalken und Einträgen). Die Wahl gilt pro Gerät (`local/sizes`). Leere Kacheln schrumpfen auf ihren Inhalt.
+
+**Bewegung und Bedienung.** Animationen nutzen nur `transform` und `opacity` (Kachel öffnen 240 ms). `prefers-reduced-motion` schaltet Atmen, HUD-Ring und Eingangsanimationen ab. Fokusring 2 px in Akzentfarbe in allen Stilen; Touch-Ziele mindestens 40 px, bestehende 44 px bleiben.
+
+**Neuer Stil.** Eintrag in `STYLES` in `js/theme/palettes.js` (Name, Modi, Phasen, Stützpunkte, Schriften, Vorschaufarben) und eine Datei `css/styles/<id>.css`, die die Variablen aus `css/style.css` überschreibt.
 
 ## Speicher-Schicht und Sync
 
 Alle Daten laufen über `js/core/storage.js`. Die Funktionen sind bewusst asynchron, damit sich die Ablage austauschen lässt, ohne Widgets anzupassen. Ist `localStorage` nicht verfügbar (z. B. im privaten Modus), hält das Modul die Daten im Arbeitsspeicher, statt abzustürzen.
 
-Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleiben immer auf dem Gerät. Alle anderen bekommen einen Änderungszeitstempel und werden von `js/core/sync.js` abgeglichen:
+Schlüssel, die mit `local/` beginnen (Caches, offene Kacheln und Kachelgrößen, Sync-Zugangsdaten); die Stil-Wahl (`design`) wird dagegen synchronisiert, bleiben immer auf dem Gerät. Alle anderen bekommen einen Änderungszeitstempel und werden von `js/core/sync.js` abgeglichen:
 
 - **Einrichten:** ⚙︎ oben rechts → Token auf GitHub erstellen (klassischer Token, nur Häkchen „gist“) → einfügen → Verbinden. Auf jedem weiteren Gerät denselben Token eintragen. Beim ersten Verbinden legt das Dashboard ein geheimes Gist `dashboard-sync.json` an bzw. findet das vorhandene.
 - **Wann:** beim Start, etwa 2 Sekunden nach jeder Änderung, beim Zurückkehren in den Tab, wenn das Gerät wieder online ist und alle 5 Minuten.
@@ -188,7 +223,7 @@ Ember ist selbst ein Spotify-Wiedergabegerät („Ember“, Web Playback SDK). S
 5. Die **Client ID** kopieren (kein Client-Secret – Ember braucht und speichert keins).
 6. In Ember: ⚙︎ → Spotify → Client-ID eintragen → **Mit Spotify verbinden** → bei Spotify zustimmen.
 
-**Wichtig zu `127.0.0.1`:** Für den Browser ist `http://127.0.0.1:8000` eine andere Website als `http://localhost:8000` mit eigenem Speicher. Synchronisierte Daten holt der Gist-Sync (Token dort einmal eintragen); Lokales wie Design, Stundenplan-Link und die Spotify-Verbindung richtest du dort neu ein.
+**Wichtig zu `127.0.0.1`:** Für den Browser ist `http://127.0.0.1:8000` eine andere Website als `http://localhost:8000` mit eigenem Speicher. Synchronisierte Daten holt der Gist-Sync (Token dort einmal eintragen); Lokales wie Kachelgrößen, Stundenplan-Link und die Spotify-Verbindung richtest du dort neu ein.
 
 ### Anmeldung, Daten und Grenzen
 

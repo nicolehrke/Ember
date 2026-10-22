@@ -11,7 +11,7 @@
 //   scope(namespace)     -> { load, save, remove, subscribe } mit Präfix
 //
 // Synchronisation: Schlüssel, die mit "local/" beginnen, bleiben auf dem
-// Gerät (Caches, Zugangsdaten, Design). Alle anderen werden mit Zeitstempel
+// Gerät (Caches, Zugangsdaten, Kachel-Layout). Alle anderen werden mit Zeitstempel
 // versehen und können von einem Sync-Modul (js/core/sync.js) abgeglichen werden.
 
 const PREFIX = 'dashboard:';
