@@ -28,7 +28,7 @@ js/core/theme.js        Stil, Hell/Dunkel und Tageszeit-Akzente, Stil-Menü (Pal
 js/theme/palettes.js    Alle Stile: Phasen, Farb-Stützpunkte über den Tag, Schriften
 js/core/briefing.js     Briefing-Satz neben der Uhr und Fokus-Modus
 js/core/icons.js        Liniensymbole für Dock und Kopfleiste
-js/core/layout.js       Kacheln verschieben (Ziehen, Tastatur), Reihenfolge, Layout zurücksetzen
+js/core/layout.js       Masonry-Raster, Kacheln verschieben (Ziehen, Tastatur), Reihenfolge, Zurücksetzen
 js/core/popover.js      Aufklapp-Panels (Wetter, Stundenplan, Einstellungen)
 js/core/http.js         fetchJSON()/fetchText() mit Timeout und verständlichen Fehlern
 js/core/ical.js         Schlanker iCal-Parser inkl. Wiederholungen und Zeitzonen
@@ -56,16 +56,18 @@ Welche Kacheln offen sind, speichert jedes Gerät für sich in `local/open` (wir
 
 ## Layout anpassen
 
+**Raster.** Die Kacheln liegen in einem Masonry-Raster (`js/core/layout.js`): ab 1200 px Fensterbreite 4 Spalten, ab 900 px 3, ab 560 px 2, darunter eine. S ist eine Spalte breit, M und L zwei (höchstens so viele, wie es Spalten gibt). Die Höhe bestimmt allein der Inhalt – es gibt keine Zeilen und kein Strecken auf die Höhe der Nachbarn. Die Kacheln werden in ihrer Reihenfolge nacheinander an die Stelle mit der niedrigsten freien Oberkante gesetzt, die für ihre Breite passt (bei Gleichstand links). Wird eine Kachel geschlossen, kleiner oder ihr Inhalt kürzer, rücken die folgenden hoch und füllen die Lücke (200 ms, bei reduzierter Bewegung ohne Animation). Neu gerechnet wird bei Fenstergröße, Öffnen/Schließen, Größenwechsel, Inhaltsänderung, Fokus-Modus und nachgeladenen Schriften; beim Laden bleiben die Kacheln unsichtbar, bis ihre Positionen stehen. Im Fokus-Modus nimmt die Lernzeit die volle Breite vorn ein. Abstände kommen aus `--gap` (oder `--gap-x` / `--gap-y`), die Layout-Logik kennt keine Stile.
+
 Ohne eigenen Anordnen-Modus: Jede Kachel lässt sich jederzeit verschieben und in der Größe ändern.
 
 - **Größe:** Fährt die Maus über eine Kachel (oder liegt der Tastaturfokus darin), erscheint links vom × ein Button mit zwei Diagonalpfeilen. Jeder Klick wechselt reihum Klein → Mittel → Groß (S → M → L); die aktuelle Größe steht im Tooltip und in der Sprachausgabe. Auf Touch-Geräten ohne Hover blendet ein Tipp auf den Kachelkopf den Button für 4 Sekunden ein; bis dahin ist er unsichtbar und nicht antippbar, damit niemand versehentlich die Größe ändert.
 - **Verschieben mit Maus:** Kachelkopf greifen und ziehen (bei Hover zeigt ein Griff mit sechs Punkten, wo). Das Ziehen beginnt nach 6 px Bewegung, ein einfacher Klick bleibt ein Klick. Buttons im Kopf und der Kachelinhalt lösen kein Ziehen aus.
 - **Verschieben mit Touch (iPad, Handy):** Kachelkopf 300 ms gedrückt halten (kurze Vibration, wo verfügbar), dann ziehen. Wer sofort wischt, scrollt ganz normal.
-- **Beim Ziehen** hält ein gestrichelter Platzhalter den Platz, die anderen Kacheln rücken nach, beim Loslassen rastet die Kachel ein. Am oberen und unteren Fensterrand scrollt die Seite mit. Esc bricht ab.
+- **Beim Ziehen** hält ein gestrichelter Platzhalter in Größe der Kachel den Platz und wird sofort ins Raster eingerechnet; die anderen Kacheln rücken animiert zur Seite oder nach oben. Ziel ist die Kachel, über der der Zeiger steht – erst wenn er mindestens 12 px in ihr ist, damit nichts flackert; die gezogene Kachel kommt davor (beim Ziehen nach hinten dahinter). Unter allen Kacheln heißt: ans Ende. Beim Loslassen rastet die Kachel in den Platzhalter ein. Am oberen und unteren Fensterrand scrollt die Seite mit. Esc bricht ab.
 - **Tastatur:** Mit Tab den Griff einer Kachel ansteuern, Leertaste greift, Pfeiltasten verschieben um eine Position, Leertaste setzt ab, Esc bricht ab. Die Position wird angesagt („Mensa, Position 3 von 6“).
 - Während Pomodoro oder ein Timer läuft (Fokus-Modus), ist Verschieben aus.
 
-Die Reihenfolge liegt als Liste der Kachel-IDs unter `layout.order` und wird über das Gist synchronisiert (die jüngste Änderung gewinnt). Kacheln, die in der Liste fehlen (z. B. neue Widgets), kommen ans Ende; unbekannte IDs werden ignoriert. Geschlossene Kacheln behalten ihren Platz und erscheinen beim Öffnen wieder dort. Das Raster füllt Lücken auf (`grid-auto-flow: dense`), deshalb kann eine kleine Kachel auf einen freien Platz vor einer großen rutschen. Die Größen gelten pro Gerät (`local/sizes`).
+Die Reihenfolge liegt als Liste der Kachel-IDs unter `layout.order` und wird über das Gist synchronisiert (die jüngste Änderung gewinnt). Kacheln, die in der Liste fehlen (z. B. neue Widgets), kommen ans Ende; unbekannte IDs werden ignoriert. Geschlossene Kacheln behalten ihren Platz in der Reihenfolge und erscheinen beim Öffnen wieder dort. Weil jede Kachel an die höchste freie Stelle rückt, kann eine schmale Kachel neben oder über einer früheren breiten landen. Die Größen gelten pro Gerät (`local/sizes`).
 
 **⚙︎ → Layout → Layout zurücksetzen** stellt die Standardreihenfolge (auf allen Geräten) und die Standardgrößen (auf diesem Gerät) wieder her; der Button fragt einmal nach („Wirklich zurücksetzen?“).
 
@@ -140,7 +142,7 @@ Bei Glas, Papier und Jarvis wird der Modus erzwungen; der Hell/Dunkel-Schalter i
 
 **Ruhe und Fokus.** Läuft Pomodoro, ein Countdown-Timer oder der freie Lerntimer, wechselt Ember in den Fokus: Die Lernzeit wird zur großen Kachel mit Ring und Zeit, die übrigen Kacheln gehen auf 36 % Deckkraft (beim Darüberfahren wieder voll), die Uhr auf 50 %, das Glühen wandert in die Mitte und statt des Briefings steht ein Fokus-Satz. Danach geht es automatisch zurück in die Ruhe.
 
-**Kachelgrößen.** S (eine Zelle), M (zwei breit) und L (zwei breit, zwei hoch) im 4-Spalten-Raster, unter 900 px 2 Spalten, unter 560 px eine Spalte (M und L dann doppelt hoch). S zeigt Kennzahl und Hauptaktion, M mehr Details, L zusätzlich Wochenbalken und Verlauf (z. B. Lernzeit: S Timer und Summen, M mit Modus-Umschalter, L mit Wochenbalken und Einträgen). Umgeschaltet wird über den Größen-Button im Kachelkopf (siehe „Layout anpassen“); die Wahl gilt pro Gerät (`local/sizes`). Leere Kacheln schrumpfen auf ihren Inhalt.
+**Kachelgrößen.** S (eine Spalte), M und L (zwei Spalten) im Masonry-Raster (siehe „Layout anpassen“); die Größe bestimmt nur Breite und Inhaltsdichte, die Höhe ergibt sich aus dem Inhalt. S zeigt Kennzahl und Hauptaktion, M mehr Details, L zusätzlich Wochenbalken und Verlauf (z. B. Lernzeit: S Timer und Summen, M mit Modus-Umschalter, L mit Wochenbalken und Einträgen). Umgeschaltet wird über den Größen-Button im Kachelkopf (siehe „Layout anpassen“); die Wahl gilt pro Gerät (`local/sizes`). Leere Kacheln schrumpfen auf ihren Inhalt.
 
 **Bewegung und Bedienung.** Animationen nutzen nur `transform` und `opacity` (Kachel öffnen 240 ms). `prefers-reduced-motion` schaltet Atmen, HUD-Ring und Eingangsanimationen ab. Fokusring 2 px in Akzentfarbe in allen Stilen; Touch-Ziele mindestens 40 px, bestehende 44 px bleiben.
 
