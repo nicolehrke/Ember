@@ -3,8 +3,9 @@
 //
 // Widget-Schnittstelle (siehe README):
 //   id, title, icon?, refreshInterval? (ms)
-//   placement? – 'grid' (Kachel, Standard), 'hero' (großer Kopfbereich links)
-//                oder 'header' (kompakt oben rechts, ohne Kachel)
+//   placement? – 'grid' (Kachel, Standard), 'hero' (großer Kopfbereich links),
+//                'header' (kompakt oben rechts, ohne Kachel) oder
+//                'drawer' (Kachel in einer Seitenleiste, geöffnet über einen Button oben)
 //   size?      – nur für 'grid': 'normal' | 'wide'
 //   render(container, ctx)   – baut das Widget auf (einmalig bzw. nach Fehler)
 //   refresh?(container, ctx) – aktualisiert Daten; fehlt es, wird render() erneut aufgerufen
@@ -13,12 +14,13 @@ import { h } from './dom.js';
 
 export function mountWidget(slots, widget) {
   const placement = widget.placement ?? 'grid';
-  const compact = placement !== 'grid';
+  const compact = placement === 'hero' || placement === 'header';
   const body = h('div', { class: 'widget-body' });
   let root;
   let actions = null;
   let status = null;
   let badge = null;
+  let toggleBadge = null;
 
   if (compact) {
     root = h('div', { class: `slot-widget slot-widget--${placement}`, 'data-widget': widget.id }, body);
@@ -26,15 +28,20 @@ export function mountWidget(slots, widget) {
     actions = h('div', { class: 'card-actions' });
     status = h('p', { class: 'card-status', hidden: true });
     badge = h('span', { class: 'card-badge', hidden: true });
+    const close = placement === 'drawer'
+      ? h('button', { class: 'icon-btn icon-btn--sm drawer-close', type: 'button', 'aria-label': `${widget.title} schließen`, title: 'Schließen (Esc)' }, '×')
+      : null;
     root = h('article', { class: `card card--${widget.size ?? 'normal'}`, 'data-widget': widget.id },
       h('header', { class: 'card-header' },
         h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
         badge,
-        actions),
+        actions,
+        close),
       body,
       status);
+    if (placement === 'drawer') toggleBadge = mountDrawer(slots, widget, root, close);
   }
-  (slots[placement] ?? slots.grid).append(root);
+  if (placement !== 'drawer') (slots[placement] ?? slots.grid).append(root);
 
   let failed = false;
   let running = false;
@@ -77,8 +84,10 @@ export function mountWidget(slots, widget) {
     // Kleiner Status neben dem Kacheltitel (z. B. laufender Timer); leer = ausgeblendet.
     setBadge(text) {
       if (!badge) return;
-      if (badge.textContent !== (text ?? '')) badge.textContent = text ?? '';
-      badge.hidden = !text;
+      for (const el of [badge, toggleBadge].filter(Boolean)) {
+        if (el.textContent !== (text ?? '')) el.textContent = text ?? '';
+        el.hidden = !text;
+      }
     },
     setStatus(text) {
       if (status) {
@@ -137,6 +146,34 @@ export function mountWidget(slots, widget) {
       if (!document.hidden && Date.now() - lastRun > widget.refreshInterval) ctx.refresh();
     });
   }
+}
+
+// Seitenleiste von rechts plus Button in der Kopfleiste; gibt das Status-Feld des Buttons zurück.
+function mountDrawer(slots, widget, card, close) {
+  const toggleBadge = h('span', { class: 'drawer-toggle-badge', hidden: true });
+  const toggle = h('button', { class: 'drawer-toggle', type: 'button', 'aria-expanded': 'false', 'aria-controls': `drawer-${widget.id}` },
+    h('span', {}, widget.title), toggleBadge);
+  const backdrop = h('div', { class: 'drawer-backdrop' });
+  const panel = h('div', { class: 'drawer-panel', role: 'dialog', 'aria-label': widget.title, tabindex: -1 }, card);
+  const drawer = h('aside', { class: 'drawer', id: `drawer-${widget.id}`, inert: true }, backdrop, panel);
+  slots.header.append(toggle);
+  (slots.drawer ?? document.body).append(drawer);
+
+  const setOpen = open => {
+    drawer.classList.toggle('is-open', open);
+    drawer.inert = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    document.documentElement.classList.toggle('drawer-open', open);
+    if (open) panel.focus({ preventScroll: true });
+    else if (drawer.contains(document.activeElement)) toggle.focus();
+  };
+  toggle.addEventListener('click', () => setOpen(!drawer.classList.contains('is-open')));
+  close.addEventListener('click', () => setOpen(false));
+  backdrop.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && drawer.classList.contains('is-open')) setOpen(false);
+  });
+  return toggleBadge;
 }
 
 function showError(body, err, retry, compactTitle) {

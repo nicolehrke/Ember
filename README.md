@@ -44,8 +44,9 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
      id: 'mein-widget',          // eindeutig, dient auch als Speicher-Namespace
      title: 'Mein Widget',
      icon: '✨',                  // optional
-     placement: 'grid',          // optional: 'grid' (Kachel), 'hero' (Kopfbereich links)
-                                 //           oder 'header' (kompakt oben rechts)
+     placement: 'grid',          // optional: 'grid' (Kachel), 'hero' (Kopfbereich links),
+                                 //           'header' (kompakt oben rechts) oder
+                                 //           'drawer' (Seitenleiste, Button oben öffnet sie)
      size: 'normal',             // optional, nur für 'grid': 'normal' oder 'wide' (2 Spalten)
      refreshInterval: 60_000,    // optional, in ms: ruft regelmäßig refresh() auf
 
@@ -90,6 +91,8 @@ Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleib
 - **Hinweis:** Ein geheimes Gist ist nicht öffentlich auffindbar, aber für jeden lesbar, der den Link kennt. Der Token wird nur im Browser des jeweiligen Geräts gespeichert.
 
 ## Lernzeit-Tracker
+
+Die Lernzeit liegt in einer Seitenleiste: Der Button „Lernzeit“ oben rechts öffnet sie (schließen mit ×, Esc oder Klick daneben). Läuft ein Timer, zeigt der Button den Stand, z. B. „● 12:34 Fokus“.
 
 - Start, Pause/Weiter und Stopp mit Fachauswahl. Die Startzeit wird gespeichert, der Timer läuft also über Neuladen und Geräte hinweg weiter. Pausen werden von der Lernzeit abgezogen und am Eintrag gespeichert. Sitzungen unter einer Minute werden verworfen.
 - Löschen per Doppelklick-Bestätigung am Button („×“ → „Löschen?“) statt Browser-Dialog, weil `confirm()` in eingebetteten Ansichten oft blockiert ist.
@@ -185,6 +188,7 @@ Die Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverändert a
 ## Datenquellen
 
 - Wetter: [Open-Meteo](https://open-meteo.com) (kein API-Key, CC BY 4.0)
-- Mensa: [OpenMensa API v2](https://openmensa.org/api/v2) (kein API-Key, direkt aus dem Browser abrufbar). Die Canteen-IDs der Aachener Mensen stehen in `js/widgets/mensa.js`.
+- Mensa: [OpenMensa API v2](https://openmensa.org/api/v2) (kein API-Key, direkt aus dem Browser abrufbar). Die Canteen-IDs der Aachener Mensen stehen in `js/widgets/mensa.js`. Angezeigt wird der Studierendenpreis.
+  Öffnungszeiten liefert OpenMensa nicht; sie stehen fest in `js/widgets/mensa.js` (Stand Oktober 2026 laut studierendenwerk-aachen.de, Vorlesungszeit) und müssen bei Änderungen dort angepasst werden. Das Widget zeigt „Geöffnet bis …“ bzw. „öffnet … um …“ und wechselt nach Schluss zum nächsten Öffnungstag.
   Die Mensa Academica (ID 187) liefert bei OpenMensa derzeit keine Speisepläne. Das Widget zeigt dafür einen Hinweis.
   Mögliche spätere Lösung: eine geplante GitHub Action, die den Plan von der Seite des Studierendenwerks ausliest und als JSON ins Repo legt.

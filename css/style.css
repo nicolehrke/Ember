@@ -956,3 +956,68 @@ input[type="number"] {
 .exam { min-width: 0; }
 .exam-head { flex-wrap: wrap; }
 .exam-subject { flex: 1 1 140px; }
+
+/* ---------- Seitenleiste (placement: 'drawer') ---------- */
+.drawer-toggle {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.drawer-toggle:hover,
+.drawer-toggle[aria-expanded="true"] { border-color: var(--muted); }
+.drawer-toggle-badge {
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.drawer-toggle-badge[hidden] { display: none; }
+
+.drawer { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
+.drawer.is-open { pointer-events: auto; }
+.drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.drawer.is-open .drawer-backdrop { opacity: 1; }
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(560px, 100vw);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  outline: none;
+}
+.drawer.is-open .drawer-panel { transform: none; }
+.drawer-panel > .card { min-height: 100%; }
+.drawer-close { margin-left: 4px; font-size: 1.3rem; }
+html.drawer-open { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .drawer-panel, .drawer-backdrop { transition: none; }
+}
+
+.mensa-hours { margin: 8px 2px 0; font-size: 0.85rem; color: var(--muted); }
+.mensa-hours[hidden] { display: none; }
+.mensa-hours.is-open { color: #3c8a4a; }
+.mensa-hours.is-open::before { content: "● "; }

@@ -5,25 +5,34 @@ import { fetchJSON } from '../core/http.js';
 
 const API = 'https://openmensa.org/api/v2';
 
+// Öffnungszeiten laut studierendenwerk-aachen.de (Stand Oktober 2026, Vorlesungszeit).
+// OpenMensa liefert keine Öffnungszeiten; in der vorlesungsfreien Zeit können sie abweichen.
+// Format: Wochentag (1 = Mo … 5 = Fr) → Liste von [von, bis].
+const week = (monThu, fri) => ({ 1: monThu, 2: monThu, 3: monThu, 4: monThu, 5: fri });
+const STANDARD = week([['11:30', '14:30']], [['11:30', '14:00']]);
+
 // Canteen-IDs ermittelt über /canteens?near[lat]=50.7766&near[lng]=6.0834.
 // Die Mensa Academica (187) ist dort nicht gelistet, aber per ID erreichbar;
 // OpenMensa hat für sie derzeit keine Speisepläne (Stand Oktober 2026).
 const CANTEENS = [
-  { id: 94, name: 'Bistro Templergraben', mine: true },
-  { id: 187, name: 'Mensa Academica', mine: true, note: 'OpenMensa hat für die Mensa Academica derzeit keine Speisepläne.' },
-  { id: 95, name: 'Mensa Ahornstraße' },
-  { id: 96, name: 'Mensa Vita' },
-  { id: 97, name: 'Mensa Bayernallee' },
-  { id: 98, name: 'Mensa Eupener Straße' },
+  { id: 94, name: 'Bistro Templergraben', mine: true, hours: week([['10:30', '18:00']], [['10:30', '14:30']]) },
+  {
+    id: 187, name: 'Mensa Academica', mine: true, hours: week([['11:30', '15:00']], [['11:30', '14:30']]),
+    note: 'OpenMensa hat für die Mensa Academica derzeit keine Speisepläne. Laut Studierendenwerk ist sie zurzeit geschlossen, es gibt ein Interimsangebot.',
+  },
+  { id: 95, name: 'Mensa Ahornstraße', hours: STANDARD },
+  { id: 96, name: 'Mensa Vita', hours: week([['11:30', '14:30']], [['11:30', '14:30']]) },
+  { id: 97, name: 'Mensa Bayernallee', hours: STANDARD },
+  { id: 98, name: 'Mensa Eupener Straße', hours: week([['11:15', '14:15'], ['14:30', '17:00']], [['11:15', '14:00']]) },
   { id: 1912, name: 'Mensa Bohr 4' },
-  { id: 99, name: 'Gastro Goethe' },
+  { id: 99, name: 'Gastro Goethe', hours: STANDARD },
   { id: 93, name: 'Forum Cafete' },
-  { id: 100, name: 'Mensa Jülich' },
+  { id: 100, name: 'Mensa Jülich', hours: STANDARD },
 ];
 const DEFAULT_CANTEEN = 94;
 
-// Nach Ende der Mittagsausgabe springt das Widget zum nächsten Öffnungstag.
-const CUTOFF_MINUTES = 14 * 60 + 30;
+// Ohne bekannte Öffnungszeiten springt das Widget ab 14:30 zum nächsten Öffnungstag.
+const FALLBACK_CLOSE = '14:30';
 
 const priceFmt = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 const timeFmt = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -39,11 +48,37 @@ function dayLabel(date) {
   return dayFmt.format(new Date(`${date}T12:00`));
 }
 
-// Heute bis zum Ende der Ausgabe, danach der nächste Öffnungstag.
-function defaultDay(openDays) {
+const minutes = hm => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
+const nowMinutes = (d = new Date()) => d.getHours() * 60 + d.getMinutes();
+const rangesOn = (canteen, date) => canteen.hours?.[date.getDay()] ?? [];
+
+// Kurzer Öffnungsstatus, z. B. „Geöffnet bis 18:00“ oder „Öffnet morgen um 10:30“.
+export function openingStatus(canteen, now = new Date()) {
+  if (!canteen.hours) return null;
+  const current = nowMinutes(now);
+  const today = rangesOn(canteen, now);
+  const open = today.find(([from, to]) => current >= minutes(from) && current < minutes(to));
+  if (open) return { open: true, text: `Geöffnet bis ${open[1]}` };
+  const later = today.find(([from]) => current < minutes(from));
+  if (later) return { open: false, text: `Geschlossen · öffnet heute um ${later[0]}` };
+  for (let i = 1; i <= 7; i++) {
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const ranges = rangesOn(canteen, day);
+    if (ranges.length) {
+      const when = i === 1 ? 'morgen' : new Intl.DateTimeFormat('de-DE', { weekday: 'long' }).format(day);
+      return { open: false, text: `Geschlossen · öffnet ${when} um ${ranges[0][0]}` };
+    }
+  }
+  return { open: false, text: 'Geschlossen' };
+}
+
+// Heute bis zum Ende der Öffnungszeit, danach der nächste Öffnungstag.
+function defaultDay(openDays, canteen) {
   const now = new Date();
   const today = isoDate(now);
-  const over = now.getHours() * 60 + now.getMinutes() >= CUTOFF_MINUTES;
+  const ranges = rangesOn(canteen, now);
+  const close = ranges.length ? ranges[ranges.length - 1][1] : FALLBACK_CLOSE;
+  const over = nowMinutes(now) >= minutes(close);
   const index = openDays.findIndex(d => d > today || (d === today && !over));
   let hint = null;
   if (index > 0 || (index === 0 && openDays[0] !== today)) {
@@ -86,15 +121,14 @@ function drawMeals(list, meals) {
   const items = mains.map(meal => {
     const diet = dietOf(meal);
     const allergens = meal.notes.filter(n => n !== 'vegan' && n !== 'OLV');
-    const { students, others } = meal.prices;
+    const { students } = meal.prices;
     return h('li', { class: 'meal', title: allergens.length ? `Enthält: ${allergens.join(', ')}` : null },
       h('div', { class: 'meal-text' },
         h('span', { class: 'meal-cat' }, meal.category),
         h('span', { class: 'meal-name' }, meal.name.split(/\s*\|\s*/).join(', ')),
         diet && h('span', { class: `tag tag-${diet}` }, diet)),
       h('div', { class: 'meal-price' },
-        students != null && h('strong', {}, priceFmt.format(students)),
-        others != null && h('span', { class: 'muted' }, `Gäste ${priceFmt.format(others)}`)));
+        students != null && h('strong', {}, priceFmt.format(students))));
   });
 
   list.replaceChildren(...[
@@ -121,7 +155,20 @@ export default {
     const list = h('div', { class: 'mensa-list' });
     const nav = h('div', { class: 'mensa-nav' }, prev, label, next);
 
-    container.append(select, nav, hint, list);
+    const hours = h('p', { class: 'mensa-hours' });
+    container.append(select, hours, nav, hint, list);
+
+    // Öffnungsstatus; die ganze Woche als Tooltip
+    const drawHours = () => {
+      const status = state.canteen && openingStatus(state.canteen);
+      hours.hidden = !status;
+      if (!status) return;
+      hours.className = `mensa-hours${status.open ? ' is-open' : ''}`;
+      hours.textContent = status.text;
+      const fmt = r => r.map(([a, b]) => `${a}–${b}`).join(', ');
+      const hrs = state.canteen.hours;
+      hours.title = `Mo–Do ${fmt(hrs[1])} · Fr ${fmt(hrs[5])} (laut Studierendenwerk, Vorlesungszeit)`;
+    };
 
     // Zustand dieser Ansicht; bleibt bei automatischen Aktualisierungen erhalten.
     const state = { canteen: null, openDays: [], index: -1, picked: false, request: 0 };
@@ -160,6 +207,7 @@ export default {
       const id = Number(await ctx.store.load('canteen', DEFAULT_CANTEEN));
       state.canteen = CANTEENS.find(c => c.id === id) ?? CANTEENS[0];
       select.value = state.canteen.id;
+      drawHours();
 
       const { data: days } = await cachedFetch(ctx, `days.${state.canteen.id}`, `${API}/canteens/${state.canteen.id}/days`);
       const today = isoDate(new Date());
@@ -181,7 +229,7 @@ export default {
       if (state.picked && state.openDays.includes(current)) {
         state.index = state.openDays.indexOf(current);
       } else {
-        const pick = defaultDay(state.openDays);
+        const pick = defaultDay(state.openDays, state.canteen);
         state.index = pick.index === -1 ? state.openDays.length - 1 : pick.index;
         state.picked = false;
         hint.textContent = pick.hint ?? '';
@@ -197,6 +245,7 @@ export default {
     });
 
     container.mensaLoad = load;
+    ctx.every(60 * 1000, drawHours);
     await load();
   },
 
