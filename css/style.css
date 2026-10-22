@@ -238,23 +238,18 @@ body {
 :root[data-mode="fokus"] .card:not([data-widget="study"]):focus-within,
 :root[data-mode="fokus"] .card:not([data-widget="study"]):hover { opacity: 1; }
 
-/* Größen-Umschalter im Kachelkopf */
-.size-switch { display: inline-flex; gap: 2px; }
-.size-btn {
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--dim);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
+/* Werkzeuge im Kachelkopf (Größe, Griff): unsichtbar, bei Hover/Tastaturfokus sichtbar.
+   Sie bleiben im Layout reserviert, damit der Kopf beim Einblenden nicht springt. */
+.card-tool { opacity: 0; transition: opacity 0.15s ease; }
+.card:hover .card-tool, .card:focus-within .card-tool, .card.is-tools .card-tool { opacity: 1; }
+.size-btn { border-color: transparent; background: none; color: var(--text); }
+.size-btn:hover { color: var(--text); border-color: var(--border); }
+.size-btn .ln-ic { width: 18px; height: 18px; }
+/* Touch ohne Hover: erst ein Tipp auf den Kopf blendet die Werkzeuge 4 s ein;
+   bis dahin sind sie nicht antippbar (keine versehentlichen Größenwechsel). */
+@media (hover: none) {
+  .card:not(.is-tools) .card-tool:not(:focus-visible) { opacity: 0; pointer-events: none; }
 }
-.size-btn:hover { color: var(--text); }
-.size-btn[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
 
 .card-header {
   display: flex;
@@ -1782,7 +1777,7 @@ a.music-title:hover { text-decoration: underline; }
 
 /* ---------- Touch: Ziele mindestens 40 px (bestehende 44 px bleiben) ---------- */
 @media (pointer: coarse) {
-  .size-btn, .icon-btn--sm { width: 40px; height: 40px; }
+  .icon-btn--sm { width: 40px; height: 40px; }
   .chip { min-height: 40px; }
   .icon-btn--xs { width: 40px; height: 40px; }
 }

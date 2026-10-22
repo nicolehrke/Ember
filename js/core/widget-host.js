@@ -6,7 +6,8 @@
 //   placement?   – 'grid' (Kachel, Standard), 'hero' (großer Kopfbereich links)
 //                  oder 'header' (kompakt oben rechts, ohne Kachel)
 //   size?        – nur für 'grid': Standardgröße 's' (1 Zelle), 'm' (2 breit) oder 'l' (2 × 2);
-//                  umschaltbar im Kachelkopf, gemerkt pro Gerät in 'local/sizes'
+//                  umschaltbar über den Größen-Button im Kachelkopf, gemerkt pro Gerät in 'local/sizes'
+//   sizes?       – erlaubte Größen, Standard ['s', 'm', 'l']
 //   dock?        – nur für 'grid': { icon, label } – icon ist ein Name aus core/icons.js;
 //                  der Button in der Dock-Leiste öffnet/schließt
 //                  die Kachel; geschlossene Kacheln laufen unsichtbar weiter (z. B. Timer)
@@ -18,7 +19,10 @@ import { scope, load, save } from './storage.js';
 import { h } from './dom.js';
 import { icon } from './icons.js';
 
-const SIZES = { s: 'Klein', m: 'Mittel', l: 'Groß' };
+const SIZES = { s: 'klein', m: 'mittel', l: 'groß' };
+const ORDER = ['s', 'm', 'l'];
+// Größe jeder Kachel auf den Standard zurücksetzen (für „Layout zurücksetzen“)
+const sizeResets = new Set();
 const SIZE_KEY = 'local/sizes';
 let sizesPromise = null;
 const sizeState = () => (sizesPromise ??= load(SIZE_KEY, {}));
@@ -43,17 +47,18 @@ export function mountWidget(slots, widget) {
     const close = widget.dock
       ? h('button', { class: 'icon-btn icon-btn--sm card-close', type: 'button', 'aria-label': `${widget.title} schließen`, title: 'Schließen' }, '×')
       : null;
-    const sizeSwitch = slots.only ? null : h('div', { class: 'size-switch', role: 'group', 'aria-label': `Größe von ${widget.title}` });
+    const sizeButton = slots.only ? null : h('button', { class: 'icon-btn icon-btn--sm card-tool size-btn', type: 'button' }, icon('resize', 'ln-ic'));
     root = h('article', { class: 'card', id: `card-${widget.id}`, 'data-widget': widget.id, 'data-size': slots.only ? 'l' : widget.size ?? 's' },
       h('header', { class: 'card-header' },
         h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
         badge,
         actions,
-        sizeSwitch,
+        sizeButton,
         close),
       body,
       status);
-    if (sizeSwitch) mountSizeSwitch(sizeSwitch, widget, root);
+    if (sizeButton) mountSizeButton(sizeButton, widget, root);
+    if (sizeButton) revealToolsOnTap(root);
     if (widget.dock) dock = mountDockButton(slots, widget, root, close);
   }
   (slots[placement] ?? slots.grid).append(root);
@@ -174,26 +179,47 @@ export function mountWidget(slots, widget) {
 }
 
 // ---------- Kachelgröße ----------
-function mountSizeSwitch(group, widget, card) {
-  const buttons = Object.entries(SIZES).map(([id, label]) => h('button', {
-    class: 'size-btn', type: 'button', 'data-size': id, title: `${label} (${id.toUpperCase()})`, 'aria-label': `${label}e Kachel`,
-  }, id.toUpperCase()));
-  group.append(...buttons);
+// Ein Button wechselt reihum durch die erlaubten Größen; die Größe steht nur in Tooltip und aria-label.
+function mountSizeButton(button, widget, card) {
+  const allowed = ORDER.filter(id => (widget.sizes ?? ORDER).includes(id));
+  const fallback = allowed.includes(widget.size) ? widget.size : allowed[0];
   const set = size => {
     card.dataset.size = size;
-    for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.size === size));
+    const next = allowed[(allowed.indexOf(size) + 1) % allowed.length];
+    button.setAttribute('aria-label', `Größe ändern, aktuell ${SIZES[size]}`);
+    button.title = `Größe: ${SIZES[size]} – klicken für ${SIZES[next]}`;
   };
-  set(card.dataset.size);
-  sizeState().then(state => { if (SIZES[state[widget.id]]) set(state[widget.id]); });
-  group.addEventListener('click', event => {
-    const size = event.target.closest('.size-btn')?.dataset.size;
-    if (!size) return;
+  set(fallback);
+  sizeResets.add(() => set(fallback));
+  sizeState().then(state => { if (allowed.includes(state[widget.id])) set(state[widget.id]); });
+  button.addEventListener('click', () => {
+    const size = allowed[(allowed.indexOf(card.dataset.size) + 1) % allowed.length];
     set(size);
     sizeState().then(state => {
       state[widget.id] = size;
       save(SIZE_KEY, state);
     });
   });
+}
+
+// Touch ohne Hover: Tipp auf den Kachelkopf (nicht auf Buttons/Links) blendet die Werkzeuge 4 s ein.
+const noHover = window.matchMedia('(hover: none)');
+function revealToolsOnTap(card) {
+  let timer = null;
+  card.querySelector('.card-header').addEventListener('click', event => {
+    if (!noHover.matches || event.target.closest('button, a, input, select')) return;
+    card.classList.add('is-tools');
+    clearTimeout(timer);
+    timer = setTimeout(() => card.classList.remove('is-tools'), 4000);
+  });
+}
+
+// Alle Kacheln dieses Geräts auf ihre Standardgröße
+export async function resetSizes() {
+  const state = await sizeState();
+  for (const key of Object.keys(state)) delete state[key];
+  await save(SIZE_KEY, state);
+  for (const reset of sizeResets) reset();
 }
 
 // ---------- Dock ----------

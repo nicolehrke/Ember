@@ -83,4 +83,4 @@
 .segment[aria-pressed="true"] { background: var(--text); color: var(--bg); }
 .habit-check, .habit-dot, .shop-check, .dot, .theme-swatch, .tt-flag, .card-badge, .tag, .exam-open-tag, .sync-dot { border-radius: 0; }
 .study-btn.is-running { box-shadow: none; }
-.size-btn[aria-pressed="true"] { background: none; color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.card-tool.icon-btn { border-color: transparent; }
