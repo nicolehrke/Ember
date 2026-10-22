@@ -9,6 +9,7 @@ import habits from './habits.js';
 import exams from './exams.js';
 import notes from './notes.js';
 import shopping from './shopping.js';
+import todos from './todos.js';
 import music from './music.js';
 
 export default [
@@ -17,6 +18,7 @@ export default [
   weather,
   // Kacheln mit Dock-Button, in der Reihenfolge des Docks
   study,
+  todos,
   exams,
   habits,
   mensa,

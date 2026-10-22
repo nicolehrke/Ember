@@ -1466,3 +1466,26 @@ a.music-title:hover { text-decoration: underline; }
 .mute-btn.is-muted { background: var(--accent); border-color: var(--accent); }
 .mute-hint[hidden] { display: none; }
 .mute-hint { margin: 0 0 12px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); font-size: 0.9rem; }
+
+/* ---------- Aufgaben (To-do) ---------- */
+.todo-date {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 150px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* kein Zoom beim Antippen auf iPhone/iPad */
+}
+.todo-add { flex-wrap: wrap; }
+.todo-add .shop-input { flex: 1 1 180px; }
+.todo-text { display: grid; gap: 1px; min-width: 0; }
+.todo-meta { font-size: 0.8rem; color: var(--muted); }
+.todo-item.is-due .todo-meta { color: var(--text); font-weight: 500; }
+.todo-item.is-overdue .todo-meta { color: var(--accent); font-weight: 500; }
+.todo-item.is-overdue { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.todo-due-label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; }
