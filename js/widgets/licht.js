@@ -64,19 +64,10 @@ export default {
       buttons = pruned;
       await ctx.store.save('buttons', buttons);
     }
-    const helpOpen = await ctx.cache.load('helpOpen', true);
     const unsupported = lacksShortcuts();
     const active = () => Object.values(buttons).filter(b => !b.deleted).sort((a, b) => a.order - b.order);
 
     const list = h('div', { class: 'light-buttons' });
-    const help = h('details', { class: 'light-help', open: helpOpen },
-      h('summary', {}, 'So richtest du es ein'),
-      h('ol', {},
-        h('li', {}, 'Kurzbefehle-App öffnen, neuen Kurzbefehl anlegen, Aktion „Home steuern“ wählen, Lichter und Szene einstellen.'),
-        h('li', {}, 'Kurzbefehl benennen – genau so wie der Name im Button.'),
-        h('li', {}, 'Hier den Namen eintragen (Zahnrad oben in der Kachel).'),
-        h('li', {}, 'Beim ersten Klick fragt macOS bzw. iOS einmal, ob Ember die Kurzbefehle-App öffnen darf.')));
-    help.addEventListener('toggle', () => ctx.cache.save('helpOpen', help.open));
     const note = h('p', { class: 'light-note muted small' }, 'Ember sendet nur den Befehl. Der aktuelle Zustand der Lichter wird nicht angezeigt.');
 
     const manage = h('div', { class: 'study-panel light-manage', hidden: true });
@@ -92,7 +83,7 @@ export default {
     // Ohne Kurzbefehle-App (Windows, Linux, Android) ruhiger Hinweis statt Buttons; verwalten geht trotzdem.
     container.append(manage, ...(unsupported
       ? [h('p', { class: 'muted' }, 'Diese Funktion braucht die Apple-Kurzbefehle (Mac, iPhone oder iPad).')]
-      : [list, note]), help);
+      : [list, note]));
 
     // ---------- Speichern ----------
     const put = async (...changed) => {

@@ -260,7 +260,7 @@ Die Kachel „Licht“ schaltet Lichter (z. B. IKEA-Lampen in Apple Home) über 
 
 1. Kurzbefehle-App öffnen, neuen Kurzbefehl anlegen, Aktion „Home steuern“ wählen, Lichter und Szene einstellen.
 2. Den Kurzbefehl benennen – genau so wie der Kurzbefehl-Name im Button (Groß-/Kleinschreibung, Leerzeichen, Umlaute).
-3. In Ember über das Zahnrad der Kachel den Namen eintragen.
+3. In Ember über das Zahnrad der Kachel den Namen eintragen (die Anleitung steht nur hier, nicht in der Kachel).
 4. Beim ersten Klick fragt macOS bzw. iOS einmal, ob die Seite die Kurzbefehle-App öffnen darf.
 
 Beim ersten Start gibt es vier Buttons: „Licht an“, „Licht aus“, „Lesen“, „Gemütlich“ (mit Shift+1 bis Shift+4). Im Zahnrad lassen sie sich umbenennen (Anzeigename und Kurzbefehl-Name sind getrennt), mit einem von acht Symbolen versehen, umsortieren, löschen und ergänzen. Pro Button ist ein Tastenkürzel Shift+1 … Shift+9 möglich; es wirkt nur, wenn gerade kein Eingabefeld aktiv ist. „Link testen“ zeigt den kompletten Link zum Kopieren, falls ein Kurzbefehl nicht startet (meist stimmt dann der Name nicht genau).
@@ -269,7 +269,7 @@ Beim ersten Start gibt es vier Buttons: „Licht an“, „Licht aus“, „Lese
 
 **Größen:** S zeigt die ersten zwei Buttons, M bis zu vier in einer Reihe, L alle als Raster mit Symbol über dem Label. Auf Geräten ohne Kurzbefehle (Windows, Linux, Android – grob am User-Agent erkannt) steht statt der Buttons ein kurzer Hinweis; im Zweifel zeigt Ember die Buttons.
 
-**Daten:** `licht.buttons` – pro Button `{ id, label, shortcut, icon, order, key, updatedAt, deleted? }`, synchronisiert wie die Einkaufsliste (pro Button gewinnt die jüngste Änderung, Löschungen als Grabstein für 30 Tage, die vier Standard-Buttons haben feste IDs). Gespeichert werden nur Anzeige- und Kurzbefehl-Namen, keine Zugangsdaten. Die Anleitung in der Kachel merkt sich pro Gerät, ob sie auf- oder zugeklappt ist.
+**Daten:** `licht.buttons` – pro Button `{ id, label, shortcut, icon, order, key, updatedAt, deleted? }`, synchronisiert wie die Einkaufsliste (pro Button gewinnt die jüngste Änderung, Löschungen als Grabstein für 30 Tage, die vier Standard-Buttons haben feste IDs). Gespeichert werden nur Anzeige- und Kurzbefehl-Namen, keine Zugangsdaten.
 
 ## Notizen
 

@@ -1824,9 +1824,6 @@ a.music-title:hover { text-decoration: underline; }
 /* Rückmeldung nach dem Klick: Akzent und Haken, 1,5 s */
 .light-btn.is-sent { background: var(--primary-bg); border-color: var(--primary-border); color: var(--primary-fg); }
 .light-note { margin: 10px 0 0; }
-.light-help { margin-top: 10px; font-size: 0.9rem; }
-.light-help summary { cursor: pointer; color: var(--muted); min-height: 32px; display: flex; align-items: center; }
-.light-help ol { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 4px; }
 .light-gear .ln-ic { width: 18px; height: 18px; }
 .light-manage { margin-bottom: 4px; }
 .light-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
