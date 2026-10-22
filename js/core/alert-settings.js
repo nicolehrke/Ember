@@ -44,6 +44,11 @@ export function alertSettings() {
     const wake = h('input', { type: 'checkbox', checked: Boolean(s.wakeLock), disabled: !wakeLockSupported() });
     wake.addEventListener('change', () => setAlertSettings({ wakeLock: wake.checked }));
 
+    const snooze = h('select', { class: 'select', 'aria-label': 'Schlummerdauer' },
+      [3, 5, 9, 10, 15].map(min => h('option', { value: min }, `${min} min`)));
+    snooze.value = String(s.snooze ?? 5);
+    snooze.addEventListener('change', () => setAlertSettings({ snooze: Number(snooze.value) }));
+
     const title = h('input', { type: 'checkbox', checked: s.tabTitle !== false });
     title.addEventListener('change', () => setAlertSettings({ tabTitle: title.checked }));
 
@@ -56,7 +61,8 @@ export function alertSettings() {
       h('label', { class: 'pomo-check' }, 'Lautstärke', volume),
       h('label', { class: 'pomo-check' }, notify, 'Benachrichtigungen (dieses Gerät)'),
       notifyInfo,
-      h('label', { class: 'pomo-check' }, wake, 'Bildschirm anlassen, solange ein Timer läuft'),
+      h('label', { class: 'pomo-check' }, 'Schlummern für', snooze),
+      h('label', { class: 'pomo-check' }, wake, 'Bildschirm anlassen, solange ein Timer läuft oder ein Wecker in den nächsten 12 Stunden klingelt'),
       !wakeLockSupported() && h('p', { class: 'muted small' }, 'Dieser Browser kann den Bildschirm nicht anlassen.'),
       h('label', { class: 'pomo-check' }, title, 'Nächsten Timer/Wecker im Tab-Titel zeigen'),
       h('p', { class: 'muted small' }, 'Timer und Wecker klingeln nur, solange Ember in einem Tab geöffnet ist.'),

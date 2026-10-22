@@ -1420,3 +1420,44 @@ a.music-title:hover { text-decoration: underline; }
 @media (pointer: coarse) {
   .segment { min-height: 44px; }
 }
+
+/* ---------- Wecker (Lernzeit-Kachel) ---------- */
+.alarms[hidden] { display: none; }
+.alarms { display: grid; gap: 12px; justify-items: start; }
+.alarms > .timer-list, .alarm-form, .alarm-missed { width: 100%; }
+.alarm-note { margin: 0; }
+.alarm-row { justify-content: flex-start; }
+.alarm-row .timer-info { flex: 1 1 140px; }
+.alarm-row .timer-name { white-space: normal; }
+.alarm-row.is-off .alarm-time { color: var(--muted); }
+.alarm-time { font-size: 1.6rem; font-weight: 300; font-variant-numeric: tabular-nums; }
+.alarm-switch { display: grid; place-items: center; min-width: 44px; min-height: 44px; cursor: pointer; }
+.alarm-toggle { width: 22px; height: 22px; accent-color: var(--accent); }
+.alarm-scope { font-size: 0.95rem; }
+.alarm-form { display: grid; gap: 10px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.alarm-form input[type="time"] { min-height: 44px; }
+.alarm-days { display: flex; flex-wrap: wrap; gap: 6px; }
+.alarm-day {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.alarm-day[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.alarm-missed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  font-size: 0.9rem;
+}

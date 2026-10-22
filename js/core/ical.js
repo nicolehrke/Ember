@@ -41,7 +41,7 @@ function validTz(tz) {
 }
 
 // Wanduhrzeit in einer Zeitzone → UTC-Zeitstempel.
-function zonedToUtc({ y, mo, d, h = 0, mi = 0, s = 0 }, tz) {
+export function zonedToUtc({ y, mo, d, h = 0, mi = 0, s = 0 }, tz) {
   if (tz === 'UTC') return Date.UTC(y, mo - 1, d, h, mi, s);
   const guess = Date.UTC(y, mo - 1, d, h, mi, s);
   let t = guess - tzOffset(guess, tz);

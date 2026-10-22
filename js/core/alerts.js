@@ -3,11 +3,11 @@
 // Ton: über die Web Audio API, ohne Dateien. Browser erlauben Ton erst nach einer
 // Nutzeraktion – nach jedem Neuladen erneut. Der erste Klick/Tastendruck irgendwo in
 // Ember schaltet ihn frei (unlock); bis dahin ist isAudioReady() false.
-// Einstellungen pro Gerät in 'local/alerts': { sound, volume, notify, wakeLock, tabTitle }.
+// Einstellungen pro Gerät in 'local/alerts': { sound, volume, notify, wakeLock, tabTitle, snooze }.
 import { load, save, subscribe } from './storage.js';
 
 const SETTINGS_KEY = 'local/alerts';
-export const DEFAULT_SETTINGS = { sound: 'glocke', volume: 0.6, notify: false, wakeLock: false, tabTitle: true };
+export const DEFAULT_SETTINGS = { sound: 'glocke', volume: 0.6, notify: false, wakeLock: false, tabTitle: true, snooze: 5 };
 
 // ---------- Einstellungen ----------
 let settings = { ...DEFAULT_SETTINGS };
