@@ -84,7 +84,8 @@ const TEMPLATES = [
       ? ['Das war ein guter Tag mit ', hl(dur(f.study.today)), ' Lernzeit.', ...(f.timetable?.next ? [' Weiter geht es ', hl(`${when(f.timetable.next.start)} mit ${f.timetable.next.title}`), '.'] : [])] : null)],
     ['e-next', f => (f.timetable?.next
       ? ['Für morgen vormerken: ', hl(`${f.timetable.next.title} ${when(f.timetable.next.start)}`), '.', ...todoHint(f)] : null)],
-    ['e-todo', f => (f.todos?.due ? ['Noch offen für heute:', ...todoHint(f), ' Oder es darf bis morgen warten.'] : null)],
+    ['e-todo', f => (f.todos?.due
+      ? ['Noch offen für heute: ', hl(count(f.todos.due, 'Aufgabe', 'Aufgaben')), f.todos.overdue ? `, ${f.todos.overdue} davon überfällig.` : '.', ' Oder es darf bis morgen warten.'] : null)],
     ['e-a', f => ['Der Abend ist da. Zeit, den Tag abzuschließen.', ...listHint(f)]],
     ['e-b', f => ['Feierabend in Sicht.', ...examHint(f)]],
   ],

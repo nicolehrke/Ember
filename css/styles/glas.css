@@ -1,0 +1,94 @@
+/* ---------- Stil „Glas“ (nur dunkel) ----------
+   Drei große Verlaufsflächen folgen der Tageszeit (Pfirsich → Blau → Rosa → Violett → Nachtblau),
+   darüber Kacheln aus Milchglas. Primäre Buttons und das aktive Dock-Symbol sind weiß.
+   Phasen: Zitrus (5–10), Kobalt (10–16), Orchidee (16–19), Beere (19–23), Eis (23–5).
+   Kontrast: Die Glasflächen sind leicht abgedunkelt und die Verlaufsflächen gedämpft,
+   damit heller Text auch über dem hellen Pfirsich am Morgen mindestens 4.5:1 erreicht. */
+
+:root {
+  --bg: #090A16;
+  --surface: rgba(255, 255, 255, 0.08);
+  --surface-solid: #191A33;
+  --surface-2: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.17);
+  --text: #F5F6FF;
+  --muted: #D3D6EE;
+  --dim: #D3D6EE;
+  --accent: var(--ui);
+  --on: #0B0B1A;
+  --gm: 1;
+
+  --primary-bg: #FFFFFF;
+  --primary-fg: #0B0B1A;
+  --primary-border: #FFFFFF;
+  --ring: #FFFFFF;
+  --dock-on-bg: rgba(255, 255, 255, 0.9);
+  --dock-on-fg: #0B0B1A;
+  --dock-on-border: transparent;
+  --hl-color: var(--text);
+  --card-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.04)), rgba(14, 14, 34, 0.42);
+  --card-border: 1px solid rgba(255, 255, 255, 0.17);
+  --card-shadow: 0 14px 44px -14px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D3D6EE' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  --r-card: 30px;
+  --r-md: 16px;
+  --r-sm: 10px;
+  --r-dock: 22px;
+  --font-brief: var(--font);
+  color-scheme: dark;
+}
+
+/* Hintergrund: drei Verlaufsflächen */
+.glow-calm { opacity: var(--k); }
+.glow-calm b {
+  background:
+    radial-gradient(42% 46% at 16% 22%, rgb(var(--glow-rgb)), transparent 70%),
+    radial-gradient(46% 50% at 86% 30%, color-mix(in srgb, rgb(var(--glow-rgb)) 35%, #5B6CFF), transparent 70%),
+    radial-gradient(50% 46% at 50% 100%, color-mix(in srgb, rgb(var(--glow-rgb)) 55%, #FF5FA2), transparent 72%);
+}
+:root[data-mode="fokus"] .glow-calm { opacity: 0; }
+
+/* Kopf */
+.hero-greeting, .hero-date { color: var(--text); }
+.hero-time { font-weight: 200; text-shadow: 0 4px 50px rgb(var(--glow-rgb) / 0.6); }
+.brief { font-style: normal; font-weight: 500; font-size: clamp(22px, 2.8vw, 34px); }
+.brief .hl {
+  padding: 0 0.4em;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text);
+  font-weight: 600;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Milchglas: Kacheln, Kopf-Chips, Dock, Popover */
+.card {
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+}
+.tt-toggle, .wx-toggle, .icon-btn:not(.icon-btn--sm):not(.icon-btn--xs) {
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+.dock {
+  width: fit-content;
+  max-width: 100%;
+  margin-left: max(0px, calc((100% - 1240px) / 2));
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.09);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+.dock-btn[aria-pressed="true"] { font-weight: 700; box-shadow: 0 6px 24px -6px rgba(0, 0, 0, 0.5); }
+.dock-btn[aria-pressed="true"] .dock-badge { color: var(--dock-on-fg); }
+.dock-btn:hover:not([aria-pressed="true"]) { background: rgba(255, 255, 255, 0.12); }
+.popover {
+  background: rgba(25, 26, 51, 0.88);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+}
