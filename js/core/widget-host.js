@@ -18,15 +18,18 @@ export function mountWidget(slots, widget) {
   let root;
   let actions = null;
   let status = null;
+  let badge = null;
 
   if (compact) {
     root = h('div', { class: `slot-widget slot-widget--${placement}`, 'data-widget': widget.id }, body);
   } else {
     actions = h('div', { class: 'card-actions' });
     status = h('p', { class: 'card-status', hidden: true });
+    badge = h('span', { class: 'card-badge', hidden: true });
     root = h('article', { class: `card card--${widget.size ?? 'normal'}`, 'data-widget': widget.id },
       h('header', { class: 'card-header' },
         h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
+        badge,
         actions),
       body,
       status);
@@ -67,6 +70,12 @@ export function mountWidget(slots, widget) {
       return id;
     },
     // Fußzeile der Kachel; bei kompakten Widgets als Tooltip.
+    // Kleiner Status neben dem Kacheltitel (z. B. laufender Timer); leer = ausgeblendet.
+    setBadge(text) {
+      if (!badge) return;
+      if (badge.textContent !== (text ?? '')) badge.textContent = text ?? '';
+      badge.hidden = !text;
+    },
     setStatus(text) {
       if (status) {
         status.textContent = text ?? '';

@@ -1,4 +1,4 @@
-// Widget „Lernzeit“: Start/Stopp-Timer mit Fächern, Tages-/Wochenübersicht,
+// Widget „Lernzeit“: Start/Stopp-Timer oder Pomodoro mit Fächern, Tages-/Wochenübersicht,
 // Einträge korrigieren/löschen, Export/Import als JSON.
 //
 // Datenmodell (über ctx.store, wird synchronisiert):
@@ -6,9 +6,11 @@
 //   sessions: { [id]: { id, subjectId, start, end, pause?, updatedAt, deleted? } }
 //             (Zeiten in ms; Lernzeit = end - start - pause)
 //   running:  { start, subjectId, pausedAt?, pausedTotal? } | null
+//   mode:     'free' | 'pomodoro'   (Pomodoro-Daten siehe pomodoro.js)
 // Gelöschte Einträge bleiben als { deleted: true } stehen, damit der Sync
 // das Löschen an andere Geräte weitergeben kann.
 import { h, confirmButton } from '../core/dom.js';
+import { createPomodoro } from './pomodoro.js';
 
 const COLORS = ['#c8553d', '#3c82cf', '#3c8a4a', '#8b62d0', '#d99a1f', '#2a9d8f', '#d65b8f', '#6b7a8f'];
 const NO_SUBJECT = { id: '', name: 'Ohne Fach', color: '#a3a097' };
@@ -40,6 +42,8 @@ function duration(ms) {
 const net = s => s.end - s.start - (s.pause ?? 0);
 const elapsed = r => (r.pausedAt ?? Date.now()) - r.start - (r.pausedTotal ?? 0);
 
+const BASE_TITLE = document.title;
+
 const weekdayFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'short' });
 const dayFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'numeric' });
 const rangeFmt = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'numeric' });
@@ -63,6 +67,7 @@ export default {
     let sessions = await ctx.store.load('sessions', {});
     let running = await ctx.store.load('running', null);
     let lastSubject = await ctx.store.load('lastSubject', '');
+    let mode = await ctx.store.load('mode', 'free');
     let week = weekStart(Date.now());
     let editing = null; // id des bearbeiteten Eintrags oder 'new'
     let flash = null; // kurzer Hinweis unter den Summen
@@ -74,14 +79,27 @@ export default {
       if (running) {
         list.push({ id: 'running', subjectId: running.subjectId, start: running.start, end: running.pausedAt ?? Date.now(), pause: running.pausedTotal ?? 0, live: true });
       }
+      const focus = pomodoro.liveSession();
+      if (focus) list.push(focus);
       return list;
     };
 
     // ---------- Elemente ----------
     const subjectSelect = h('select', { class: 'select', 'aria-label': 'Fach' });
+    // Pomodoro speichert abgeschlossene Fokusphasen als normale Einträge (putSession).
+    const pomodoro = createPomodoro({
+      ctx,
+      getSubjectId: () => subjectSelect.value,
+      saveFocus: async session => { await putSession(session); },
+      onChange: () => { drawTimer(); if (!editing) drawStats(); },
+    });
     const timeEl = h('span', { class: 'study-time' });
     const startStop = h('button', { class: 'study-btn', type: 'button' });
     const pauseButton = h('button', { class: 'study-btn study-btn--secondary', type: 'button', hidden: true });
+    const freeButtons = h('div', { class: 'study-buttons' }, pauseButton, startStop);
+    const modeFree = h('button', { class: 'segment', type: 'button' }, 'Frei');
+    const modePomodoro = h('button', { class: 'segment', type: 'button' }, 'Pomodoro');
+    const modeSwitch = h('div', { class: 'segmented', role: 'group', 'aria-label': 'Timer-Modus' }, modeFree, modePomodoro);
     const totals = h('p', { class: 'study-totals' });
     const weekLabel = h('span', { class: 'study-week' });
     const prevWeek = h('button', { class: 'icon-btn icon-btn--sm', type: 'button', 'aria-label': 'Vorherige Woche' }, '‹');
@@ -98,9 +116,11 @@ export default {
     container.append(
       subjectsPanel,
       dataPanel,
+      modeSwitch,
       h('div', { class: 'study-timer' },
         h('div', { class: 'study-timer-main' }, subjectSelect, timeEl),
-        h('div', { class: 'study-buttons' }, pauseButton, startStop)),
+        freeButtons),
+      pomodoro.element,
       totals,
       h('div', { class: 'study-weekbar' }, prevWeek, weekLabel, nextWeek),
       chart,
@@ -128,6 +148,21 @@ export default {
     // ---------- Timer ----------
     const drawTimer = () => {
       const paused = Boolean(running?.pausedAt);
+      const pomodoroMode = mode === 'pomodoro';
+      const busy = Boolean(running) || pomodoro.isBusy();
+      modeFree.setAttribute('aria-pressed', String(!pomodoroMode));
+      modePomodoro.setAttribute('aria-pressed', String(pomodoroMode));
+      modeFree.disabled = modePomodoro.disabled = busy;
+      modeSwitch.title = busy ? 'Erst den laufenden Timer beenden, dann den Modus wechseln.' : '';
+      timeEl.hidden = freeButtons.hidden = pomodoroMode;
+      pomodoro.element.hidden = !pomodoroMode;
+
+      // Stand im Kachelkopf und im Tab-Titel
+      const pomo = pomodoro.status();
+      const free = running ? `${paused ? '⏸' : '●'} ${clock(elapsed(running))}${paused ? ' pausiert' : ''}` : null;
+      ctx.setBadge(pomo?.badge ?? free);
+      document.title = pomo ? `${pomo.title} · ${BASE_TITLE}` : free ? `${free} · ${BASE_TITLE}` : BASE_TITLE;
+
       timeEl.textContent = clock(running ? elapsed(running) : 0);
       startStop.textContent = running ? 'Stopp' : 'Start';
       startStop.classList.toggle('is-running', Boolean(running));
@@ -177,6 +212,7 @@ export default {
         running = { ...running, subjectId: subjectSelect.value };
         await ctx.store.save('running', running);
       }
+      await pomodoro.setSubject(subjectSelect.value);
       drawStats();
     });
 
@@ -392,6 +428,16 @@ export default {
       }
     });
 
+    // ---------- Modus ----------
+    const setMode = async next => {
+      if (running || pomodoro.isBusy() || next === mode) return;
+      mode = next;
+      await ctx.store.save('mode', mode);
+      drawTimer();
+    };
+    modeFree.addEventListener('click', () => setMode('free'));
+    modePomodoro.addEventListener('click', () => setMode('pomodoro'));
+
     // ---------- Zusammenspiel ----------
     const drawAll = () => {
       drawSubjectSelect();
@@ -406,11 +452,17 @@ export default {
     ctx.store.subscribe('subjects', v => { subjects = v ?? {}; drawAll(); });
     ctx.store.subscribe('sessions', v => { sessions = v ?? {}; if (!editing) drawStats(); });
     ctx.store.subscribe('running', v => { running = v; drawAll(); });
+    ctx.store.subscribe('mode', v => { mode = v ?? 'free'; drawTimer(); });
 
+    await pomodoro.init();
     drawAll();
-    ctx.every(1000, drawTimer);
+    await pomodoro.tick();
+    ctx.every(1000, async () => {
+      await pomodoro.tick();
+      drawTimer();
+    });
     // Bei laufendem Timer Übersicht regelmäßig nachziehen; um Mitternacht Tageswechsel.
-    ctx.every(30 * 1000, () => { if (running && !editing) drawStats(); });
+    ctx.every(30 * 1000, () => { if ((running || pomodoro.liveSession()) && !editing) drawStats(); });
     let today = dayStart(Date.now());
     ctx.every(60 * 1000, () => {
       if (dayStart(Date.now()) === today) return;

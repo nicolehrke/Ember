@@ -772,3 +772,72 @@ input[type="number"] {
 .tt-toggle { max-width: min(320px, 100%); }
 /* Kompakte Widgets und Buttons teilen sich eine Zeile und brechen gemeinsam um */
 .slot-header { display: contents; }
+
+/* ---------- Kachelkopf-Status ---------- */
+.card-badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  white-space: nowrap;
+}
+.card-badge[hidden] { display: none; }
+
+/* ---------- Umschalter (Segmente) ---------- */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.segment {
+  padding: 5px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.segment[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.segment:disabled { cursor: not-allowed; }
+.segment:disabled:not([aria-pressed="true"]) { opacity: 0.45; }
+.study-time[hidden], .study-buttons[hidden], .pomo[hidden] { display: none; }
+
+/* ---------- Pomodoro ---------- */
+.pomo { margin-top: 14px; }
+.pomo-main { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.pomo-dial { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
+.pomo-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.pomo-ring circle { fill: none; stroke-width: 7; }
+.pomo-ring-track { stroke: var(--surface-2); }
+.pomo-ring-bar { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.9s linear; }
+.pomo[data-phase="short"] .pomo-ring-bar,
+.pomo[data-phase="long"] .pomo-ring-bar { stroke: #3c8a4a; }
+.pomo-dial-text { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 2px; }
+.pomo-time { font-size: 1.9rem; font-weight: 250; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.pomo-phase { font-size: 0.8rem; color: var(--muted); max-width: 110px; }
+.pomo.is-paused .pomo-time { animation: pulse 1.6s ease-in-out infinite; }
+.pomo-side { display: grid; gap: 10px; min-width: 0; flex: 1 1 200px; }
+.pomo-round { font-size: 0.9rem; }
+.pomo-controls { display: flex; flex-wrap: wrap; gap: 6px; }
+.pomo-controls[hidden], .pomo-question[hidden], .pomo-controls .chip[hidden] { display: none; }
+.pomo-primary { min-width: 90px; }
+.pomo-question { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 0.9rem; }
+.pomo-question p { margin: 0; }
+.pomo-settings { margin-top: 12px; font-size: 0.9rem; }
+.pomo-settings summary { cursor: pointer; color: var(--muted); }
+.pomo-settings[open] { display: grid; gap: 10px; padding: 10px 12px 12px; border-radius: 12px; background: var(--surface-2); }
+.pomo-settings[open] summary { margin-bottom: 2px; }
+.pomo-settings p { margin: 0; }
+.pomo-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px; }
+.pomo-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pomo-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.pomo-check input { accent-color: var(--accent); width: 16px; height: 16px; }

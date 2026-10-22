@@ -90,6 +90,12 @@ Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleib
 
 - Start, Pause/Weiter und Stopp mit Fachauswahl. Die Startzeit wird gespeichert, der Timer läuft also über Neuladen und Geräte hinweg weiter. Pausen werden von der Lernzeit abgezogen und am Eintrag gespeichert. Sitzungen unter einer Minute werden verworfen.
 - Löschen per Doppelklick-Bestätigung am Button („×“ → „Löschen?“) statt Browser-Dialog, weil `confirm()` in eingebetteten Ansichten oft blockiert ist.
+- **Pomodoro-Modus:** Umschalter „Frei“/„Pomodoro“ über dem Timer (wird gespeichert). Fokus, kurze und lange Pause sowie die Runden bis zur langen Pause sind unter „Pomodoro-Einstellungen“ einstellbar (Standard 25/5/15 min, 4 Runden), ebenso der automatische Start der nächsten Phase. Bedienung: Start, Pause/Weiter, Überspringen, Abbrechen.
+  - Gerechnet wird nur mit gespeicherten Zeitstempeln (Start, Ende, Pausen) – die Restzeit stimmt daher auch nach Neuladen, in Hintergrund-Tabs und auf dem iPad.
+  - Nur Fokusphasen werden als normale Lerneinträge gespeichert (Pausen nicht); abgebrochene oder übersprungene Fokusphasen zählen mit der tatsächlich gelaufenen Zeit. Sie erscheinen in derselben Wochenübersicht.
+  - Lief eine Fokusphase ab, während das Dashboard nicht offen war, fragt das Widget, ob sie gezählt werden soll.
+  - Ton und Benachrichtigung beim Phasenwechsel sind standardmäßig aus und werden pro Gerät eingeschaltet (Benachrichtigungen erst nach Zustimmung im Browser). Beides funktioniert nur, solange das Dashboard geöffnet ist; auf dem iPad gibt es Benachrichtigungen nur für Web-Apps auf dem Home-Bildschirm. Den Stand zeigen immer der Tab-Titel (z. B. „🍅 12:34 Fokus“) und der Kopf der Lernzeit-Kachel.
+  - Daten: `study.pomodoro` (aktuelle Phase) und `study.pomodoroSettings` werden synchronisiert, `local/cache/study.pomodoroAlerts` (Ton/Benachrichtigung) bleibt auf dem Gerät.
 - Fächer anlegen, umbenennen, Farbe wechseln und löschen über „Fächer“.
 - Übersicht über heute und die Woche, Balkendiagramm Mo–So nach Fach, Wochen mit ‹ › durchblättern.
 - Unter „Einträge dieser Woche“ Einträge bearbeiten, löschen oder nachtragen.
