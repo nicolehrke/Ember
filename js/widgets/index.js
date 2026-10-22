@@ -11,6 +11,7 @@ import notes from './notes.js';
 import shopping from './shopping.js';
 import todos from './todos.js';
 import music from './music.js';
+import licht from './licht.js';
 
 export default [
   clock,
@@ -25,4 +26,5 @@ export default [
   shopping,
   notes,
   music,
+  licht,
 ];

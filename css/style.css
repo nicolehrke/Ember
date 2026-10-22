@@ -1800,6 +1800,44 @@ a.music-title:hover { text-decoration: underline; }
 .card[data-widget="music"][data-size="s"] .music-volume-wrap,
 .card[data-widget="music"]:not([data-size="l"]) .music-browse { display: none; }
 
+/* ---------- Widget: Licht (Apple-Kurzbefehle) ---------- */
+.light-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.light-btn {
+  min-height: 48px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+.light-btn:hover { border-color: var(--muted); }
+.light-btn .ln-ic { width: 20px; height: 20px; }
+.light-label-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Rückmeldung nach dem Klick: Akzent und Haken, 1,5 s */
+.light-btn.is-sent { background: var(--primary-bg); border-color: var(--primary-border); color: var(--primary-fg); }
+.light-note { margin: 10px 0 0; }
+.light-help { margin-top: 10px; font-size: 0.9rem; }
+.light-help summary { cursor: pointer; color: var(--muted); min-height: 32px; display: flex; align-items: center; }
+.light-help ol { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 4px; }
+/* Größen: S = die ersten zwei, M = bis zu vier in einer Reihe, L = alle als Raster mit Symbol über Label */
+.card[data-widget="licht"][data-size="s"] .light-btn:nth-child(n + 3),
+.card[data-widget="licht"][data-size="m"] .light-btn:nth-child(n + 5) { display: none; }
+.card[data-widget="licht"][data-size="m"] .light-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.card[data-widget="licht"][data-size="l"] .light-buttons { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+.card[data-widget="licht"][data-size="l"] .light-btn { flex-direction: column; min-height: 88px; }
+.card[data-widget="licht"][data-size="l"] .light-btn .ln-ic { width: 26px; height: 26px; }
+@media (max-width: 559px) {
+  .card[data-widget="licht"][data-size="m"] .light-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* ---------- Touch: Ziele mindestens 40 px (bestehende 44 px bleiben) ---------- */
 @media (pointer: coarse) {
   .icon-btn--sm { width: 40px; height: 40px; }
