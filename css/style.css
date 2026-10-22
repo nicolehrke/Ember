@@ -1226,3 +1226,9 @@ input[type="number"] {
 .only-view .grid { grid-template-columns: minmax(0, 640px); justify-content: center; }
 .only-view .card { grid-column: auto; }
 .only-back { display: block; max-width: 640px; margin: 16px auto 0; font-size: 0.85rem; color: var(--muted); }
+
+/* Einstellungen: Spotify-Bereich */
+.settings-spotify { display: grid; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.settings-spotify p { margin: 0; }
+.settings-code { flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px; background: var(--surface-2); font-size: 0.8rem; overflow-wrap: anywhere; }
+.settings-state.is-off::before { content: "● "; color: var(--muted); }

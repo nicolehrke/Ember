@@ -2,10 +2,14 @@ import { runMigrations } from './core/migrations.js';
 import { initTheme } from './core/theme.js';
 import { initSettings } from './core/settings.js';
 import { initSync } from './core/sync.js';
+import { handleRedirect as handleSpotifyRedirect, refreshStatus as refreshSpotifyStatus } from './spotify/auth.js';
 import { mountWidget } from './core/widget-host.js';
 import widgets from './widgets/index.js';
 
 await runMigrations();
+// Rückkehr von der Spotify-Anmeldung: Code eintauschen und URL bereinigen
+await handleSpotifyRedirect();
+await refreshSpotifyStatus();
 
 initTheme(document.getElementById('theme-toggle'));
 initSettings(document.getElementById('settings'));
