@@ -12,6 +12,7 @@
 import { h, confirmButton } from '../core/dom.js';
 import { createPomodoro } from './pomodoro.js';
 import { exportBackup, importBackup } from '../core/backup.js';
+import { setTitlePart } from '../core/title.js';
 
 export const COLORS = ['#c8553d', '#3c82cf', '#3c8a4a', '#8b62d0', '#d99a1f', '#2a9d8f', '#d65b8f', '#6b7a8f'];
 const NO_SUBJECT = { id: '', name: 'Ohne Fach', color: '#a3a097' };
@@ -43,7 +44,6 @@ function duration(ms) {
 const net = s => s.end - s.start - (s.pause ?? 0);
 const elapsed = r => (r.pausedAt ?? Date.now()) - r.start - (r.pausedTotal ?? 0);
 
-const BASE_TITLE = document.title;
 
 const weekdayFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'short' });
 const dayFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'numeric' });
@@ -154,7 +154,7 @@ export default {
       const pomo = pomodoro.status();
       const free = running ? `${paused ? '⏸' : '●'} ${clock(elapsed(running))}${paused ? ' pausiert' : ''}` : null;
       ctx.setBadge(pomo?.badge ?? free);
-      document.title = pomo ? `${pomo.title} · ${BASE_TITLE}` : free ? `${free} · ${BASE_TITLE}` : BASE_TITLE;
+      setTitlePart('study', pomo?.title ?? free);
 
       timeEl.textContent = clock(running ? elapsed(running) : 0);
       startStop.textContent = running ? 'Stopp' : 'Start';

@@ -4,6 +4,7 @@ import { initSettings } from './core/settings.js';
 import { initSync } from './core/sync.js';
 import { handleRedirect as handleSpotifyRedirect, refreshStatus as refreshSpotifyStatus } from './spotify/auth.js';
 import { mountWidget } from './core/widget-host.js';
+import { setTitleBase } from './core/title.js';
 import widgets from './widgets/index.js';
 
 await runMigrations();
@@ -27,7 +28,7 @@ const ONLY = { einkauf: 'shopping' };
 const only = ONLY[new URLSearchParams(location.search).get('nur')];
 if (only) {
   document.documentElement.classList.add('only-view');
-  document.title = 'Einkaufsliste';
+  setTitleBase('Einkaufsliste');
   slots.grid.after(Object.assign(document.createElement('a'), { className: 'only-back', href: './', textContent: 'Zum Dashboard' }));
 }
 for (const widget of widgets) {

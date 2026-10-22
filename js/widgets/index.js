@@ -9,6 +9,7 @@ import habits from './habits.js';
 import exams from './exams.js';
 import notes from './notes.js';
 import shopping from './shopping.js';
+import music from './music.js';
 
 export default [
   clock,
@@ -21,4 +22,5 @@ export default [
   mensa,
   shopping,
   notes,
+  music,
 ];
