@@ -667,3 +667,108 @@ input[type="number"] {
   .study-btn--secondary { width: 54px; height: 54px; }
   .study-buttons { gap: 8px; }
 }
+
+/* ---------- Widget: Stundenplan (kompakt + Panel) ---------- */
+.slot-header { flex-wrap: wrap; justify-content: flex-end; }
+
+.tt-toggle {
+  height: 40px;
+  max-width: min(320px, 62vw);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.tt-toggle:hover,
+.tt-toggle[aria-expanded="true"] { border-color: var(--muted); }
+.tt-toggle .ic { color: var(--accent); width: 1.25em; height: 1.25em; }
+.tt-toggle-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tt-toggle-text strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tt-toggle.is-stale .tt-toggle-text::after { content: " ·"; color: var(--accent); }
+
+.tt-panel { width: min(460px, calc(100vw - 32px)); }
+
+.tt-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.tt-nav[hidden], .tt-days[hidden], .tt-setup[hidden] { display: none; }
+.tt-nav-label { font-weight: 600; font-size: 0.9rem; }
+
+.tt-day + .tt-day { margin-top: 6px; }
+.tt-day-title {
+  margin: 12px 0 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.tt-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+
+.tt-event {
+  display: grid;
+  grid-template-columns: 3.4em minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+.tt-event.is-now { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.tt-event.is-past { opacity: 0.5; }
+.tt-event.is-cancelled .tt-title { text-decoration: line-through; color: var(--muted); }
+.tt-time { font-variant-numeric: tabular-nums; font-weight: 600; line-height: 1.3; }
+.tt-time .muted { font-weight: 400; font-size: 0.85rem; }
+.tt-info { display: grid; gap: 2px; justify-items: start; min-width: 0; }
+.tt-title { font-weight: 500; overflow-wrap: break-word; }
+.tt-room { font-size: 0.88rem; }
+.tt-flag {
+  margin-top: 2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #d6384a;
+  background: rgba(214, 56, 74, 0.12);
+}
+.tt-flag--now { color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.tt-desc { font-size: 0.85rem; color: var(--muted); }
+.tt-desc summary { cursor: pointer; }
+.tt-desc p { margin: 4px 0 0; white-space: pre-line; }
+
+.tt-allday {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.tt-allday.is-cancelled { text-decoration: line-through; color: var(--muted); }
+.tt-gap { padding: 2px 10px 2px calc(3.4em + 22px); font-size: 0.78rem; color: var(--muted); }
+.tt-gap::before { content: "┆ "; }
+.tt-empty { padding: 6px 10px; }
+
+.tt-setup { display: grid; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.tt-setup p { margin: 0; font-size: 0.88rem; }
+.tt-setup input[type="url"] { width: 100%; min-width: 0; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: inherit; font: inherit; }
+.tt-label { font-size: 0.85rem; font-weight: 600; }
+.tt-saved { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.88rem; }
+.tt-import { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 0.88rem; }
+.tt-setup-info:empty { display: none; }
+
+.tt-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.tt-status { margin: 0; font-size: 0.75rem; display: grid; gap: 2px; }
+.tt-problem { color: #d6384a; }
+.tt-footer[hidden] { display: none; }
+.tt-panel.is-unconfigured .tt-setup { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* Kopfleiste darf umbrechen, damit sie nie breiter als das Fenster wird */
+.top-tools { flex-wrap: wrap; justify-content: flex-end; flex-shrink: 1; min-width: 0; max-width: 100%; }
+.slot-header { min-width: 0; max-width: 100%; }
+.slot-widget--header { min-width: 0; max-width: 100%; }
+.tt-toggle { max-width: min(320px, 100%); }
+/* Kompakte Widgets und Buttons teilen sich eine Zeile und brechen gemeinsam um */
+.slot-header { display: contents; }

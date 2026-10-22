@@ -1,6 +1,7 @@
-// Gemeinsamer Fetch-Helfer mit Timeout und verständlichen Fehlermeldungen.
+// Gemeinsame Fetch-Helfer mit Timeout und verständlichen Fehlermeldungen.
+// Netzwerkfehler (auch von CORS blockierte Abrufe) tragen err.code = 'network'.
 
-export async function fetchJSON(url, { timeout = 10000 } = {}) {
+async function request(url, { timeout = 10000 } = {}, read) {
   if (!navigator.onLine) throw new Error('Offline – keine Internetverbindung.');
 
   const controller = new AbortController();
@@ -8,12 +9,19 @@ export async function fetchJSON(url, { timeout = 10000 } = {}) {
   try {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) throw new Error(`Der Server antwortet mit Fehler ${res.status}.`);
-    return await res.json();
+    return await read(res);
   } catch (err) {
     if (err.name === 'AbortError') throw new Error('Zeitüberschreitung beim Laden.');
-    if (err instanceof TypeError) throw new Error('Netzwerkfehler – Server nicht erreichbar.');
+    if (err instanceof TypeError) {
+      const error = new Error('Netzwerkfehler – Server nicht erreichbar.');
+      error.code = 'network';
+      throw error;
+    }
     throw err;
   } finally {
     clearTimeout(timer);
   }
 }
+
+export const fetchJSON = (url, options) => request(url, options, res => res.json());
+export const fetchText = (url, options) => request(url, options, res => res.text());
