@@ -7,6 +7,7 @@ import { setTitlePart } from '../core/title.js';
 import { onAuth, getAuthState, login, refreshStatus } from '../spotify/auth.js';
 import { SETTINGS_KEY } from '../spotify/settings-section.js';
 import * as P from '../spotify/player.js';
+import { createBrowse } from './music-browse.js';
 
 const pad = n => String(n).padStart(2, '0');
 const mmss = ms => `${Math.floor(ms / 60000)}:${pad(Math.floor(ms / 1000) % 60)}`;
@@ -155,11 +156,18 @@ export default {
       }
     };
 
+    // Musikauswahl (Playlists, Suche, zuletzt gehört)
+    const browser = createBrowse({ onError: showError, onPlayed: () => { status.classList.remove('is-error'); } });
+    browse.append(browser.element);
+
     function draw() {
+      const connected = getAuthState().status === 'connected';
       drawNotice(getAuthState());
       drawNow();
       drawStatus();
-      browse.hidden = getAuthState().status !== 'connected';
+      browse.hidden = !connected;
+      if (!connected) browser.reset();
+      else if (!ctx.root.hidden) browser.show();
     }
 
     // Wiedergabe auf anderem Gerät gelegentlich abfragen (nur wenn verbunden und hier nichts läuft)
@@ -181,13 +189,15 @@ export default {
     ctx.every(20 * 1000, pollRemote);
     ctx.onCleanup(() => setTitlePart('music', null));
     // Beim Öffnen der Kachel einmal nachsehen
-    const openWatch = new MutationObserver(() => { if (!ctx.root.hidden) pollRemote(); });
+    const openWatch = new MutationObserver(() => {
+      if (ctx.root.hidden) return;
+      pollRemote();
+      if (getAuthState().status === 'connected') browser.show();
+    });
     openWatch.observe(ctx.root, { attributes: true, attributeFilter: ['hidden'] });
     ctx.onCleanup(() => openWatch.disconnect());
 
     await refreshStatus();
     draw();
-    // Für Schritt 3 (Musikauswahl): Bereich bereitstellen
-    container.musicBrowse = browse;
   },
 };

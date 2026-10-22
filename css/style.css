@@ -1280,3 +1280,32 @@ input[type="number"] {
 .music-status.is-error { color: #d6384a; }
 .music-browse { margin-top: 14px; }
 .music-browse[hidden] { display: none; }
+
+/* Musikauswahl */
+.music-tabs { margin-bottom: 10px; }
+.music-search { display: flex; gap: 6px; margin-bottom: 10px; }
+.music-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.music-row {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.music-row:hover, .music-row:focus-visible { background: var(--surface-2); }
+.music-thumb { width: 40px; height: 40px; flex-shrink: 0; border-radius: 4px; object-fit: cover; } /* unverändert, runde Ecken laut Spotify */
+.music-thumb--empty { display: grid; place-items: center; background: var(--surface-2); color: var(--muted); }
+.music-row-text { display: grid; gap: 1px; min-width: 0; }
+.music-row-name, .music-row-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-row-sub { font-size: 0.82rem; }
+.music-results { display: grid; gap: 12px; }
+.music-results .shop-section-title { margin-bottom: 4px; }
+.music-pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; font-size: 0.85rem; }
