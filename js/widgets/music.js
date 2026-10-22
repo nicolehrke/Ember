@@ -34,6 +34,22 @@ export default {
     const browse = h('div', { class: 'music-browse' });
     container.append(logo(), notice, now, status, browse);
 
+    // Mini-Modus: nur Titel und knappe Steuerung; Wahl pro Gerät
+    let mini = await ctx.cache.load('mini', false);
+    const miniButton = ctx.addAction('', async () => {
+      mini = !mini;
+      applyMini();
+      await ctx.cache.save('mini', mini);
+    });
+    const applyMini = () => {
+      ctx.root.classList.toggle('is-mini', mini);
+      miniButton.textContent = mini ? 'Groß' : 'Mini';
+      miniButton.title = mini ? 'Vollständigen Player zeigen' : 'Auf eine Zeile verkleinern';
+      miniButton.setAttribute('aria-label', miniButton.title);
+      miniButton.setAttribute('aria-pressed', String(mini));
+    };
+    applyMini();
+
     const showError = err => {
       // Diese Fälle zeigt die Kachel bereits als eigenen Zustand an
       if (['unsupported', 'premium', 'auth'].includes(err?.code)) return;
@@ -126,7 +142,10 @@ export default {
         h('div', { class: 'music-track' },
           t.image ? h('img', { class: 'music-cover', src: t.image, alt: `Cover von „${t.album}“`, width: 72, height: 72 }) : null,
           h('div', { class: 'music-meta' },
-            h('span', { class: 'music-title', title: t.name }, t.name),
+            // Titel verlinkt zu Spotify (im Mini-Modus der einzige Link zurück)
+            t.url
+              ? h('a', { class: 'music-title', href: t.url, target: '_blank', rel: 'noopener', title: `${t.name} – Play on Spotify` }, t.name)
+              : h('span', { class: 'music-title', title: t.name }, t.name),
             h('span', { class: 'music-artist muted', title: t.artists }, t.artists),
             t.url && h('a', { class: 'music-open', href: t.url, target: '_blank', rel: 'noopener' }, 'PLAY ON SPOTIFY'))),
         h('div', { class: 'music-progress-row' }, elapsed, progress, total),

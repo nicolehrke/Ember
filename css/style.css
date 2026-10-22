@@ -1309,3 +1309,21 @@ input[type="number"] {
 .music-results { display: grid; gap: 12px; }
 .music-results .shop-section-title { margin-bottom: 4px; }
 .music-pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; font-size: 0.85rem; }
+
+/* Musik: Mini-Modus (eine Zeile: Cover, Titel, ⏮ ⏯ ⏭) */
+a.music-title { color: inherit; text-decoration: none; }
+a.music-title:hover { text-decoration: underline; }
+.card.is-mini { gap: 8px; }
+.card.is-mini .spotify-logo { margin-bottom: 4px; }
+.card.is-mini .spotify-logo img { width: 70px; } /* Mindestgröße laut Spotify */
+.card.is-mini .music-browse,
+.card.is-mini .music-progress-row,
+.card.is-mini .music-volume-wrap,
+.card.is-mini .music-open,
+.card.is-mini .music-status:not(.is-error) { display: none; }
+.card.is-mini .music-now { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.card.is-mini .music-track { gap: 10px; }
+.card.is-mini .music-cover { width: 44px; height: 44px; border-radius: 4px; }
+.card.is-mini .music-controls { gap: 4px; flex-wrap: nowrap; }
+.card.is-mini .music-btn--main { width: 44px; height: 44px; }
+.card.is-mini .music-now > p { grid-column: 1 / -1; }

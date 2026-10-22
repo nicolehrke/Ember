@@ -138,7 +138,7 @@ Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer,
 
 ## Musik (Spotify)
 
-Ember ist selbst ein Spotify-Wiedergabegerät („Ember“, Web Playback SDK). Steuerung in der Musik-Kachel: Play/Pause, Weiter/Zurück, Lautstärke, Fortschrittsbalken mit Spulen, Cover, Titel und Interpret mit Link „PLAY ON SPOTIFY“. Musik wählst du aus deinen Playlists, über die Suche oder „Zuletzt gehört“. Die Wiedergabe läuft weiter, wenn die Kachel geschlossen ist; der Dock-Button zeigt dann den Titel. Abgespielt wird nur nach einem Klick, nie automatisch beim Laden.
+Ember ist selbst ein Spotify-Wiedergabegerät („Ember“, Web Playback SDK). Steuerung in der Musik-Kachel: Play/Pause, Weiter/Zurück, Lautstärke, Fortschrittsbalken mit Spulen, Cover, Titel und Interpret mit Link „PLAY ON SPOTIFY“. Musik wählst du aus deinen Playlists, über die Suche oder „Zuletzt gehört“. Die Wiedergabe läuft weiter, wenn die Kachel geschlossen ist; der Dock-Button zeigt dann den Titel. Abgespielt wird nur nach einem Klick, nie automatisch beim Laden. Über „Mini“ im Kachelkopf schrumpft die Kachel auf eine Zeile (kleines Cover, Titel/Interpret als Link zu Spotify, ⏮ ⏯ ⏭, Spotify-Logo in Mindestgröße); „Groß“ holt den vollständigen Player zurück. Die Wahl merkt sich jedes Gerät.
 
 **Voraussetzungen:** Spotify Premium (für den Player und, im Development Mode, für den App-Besitzer) und ein Desktop-Browser mit DRM-Unterstützung (Chrome, Firefox, Edge, Safari). In eingebetteten Browsern ohne Widevine startet der Player nicht – Ember zeigt dann einen Hinweis.
 
