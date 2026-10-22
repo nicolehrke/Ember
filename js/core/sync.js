@@ -99,6 +99,8 @@ export function merge(local, remote) {
 
 async function readGist(config) {
   const gist = await gh(`/gists/${config.gistId}`, config.token);
+  // Sichtbarkeit für die Anzeige in ⚙︎ – die Daten können persönlich sein
+  setStatus({ gistPublic: gist.public === true });
   const file = gist.files?.[FILE];
   if (!file) return {};
   let content = file.content;

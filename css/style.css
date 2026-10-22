@@ -1545,3 +1545,4 @@ a.music-title:hover { text-decoration: underline; }
 .todo-check-btn[aria-pressed="true"] .shop-check { border-color: var(--accent); background: var(--accent) radial-gradient(circle, #fff 0 3px, transparent 4px); }
 .todo-item .shop-toggle.todo-text { display: grid; gap: 1px; align-content: center; padding-left: 0; }
 .todo-item.is-done .shop-check { border-color: var(--accent); }
+.todo-item .shop-name { overflow-wrap: break-word; hyphens: auto; }

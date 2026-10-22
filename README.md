@@ -43,7 +43,7 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen und Musik sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Symbol-Buttons unter der Uhr (⏱ Lernzeit, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa, 🛒 Einkaufsliste, 📝 Notizen, 🎵 Musik; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
+Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen und Musik sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Symbol-Buttons unter der Uhr (⏱ Lernzeit, 📋 Aufgaben, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa, 🛒 Einkaufsliste, 📝 Notizen, 🎵 Musik; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
 
 Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben). Gewohnheiten und Mensa zeigen nur ihr Symbol.
 
@@ -103,7 +103,7 @@ Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleib
 - **Einrichten:** ⚙︎ oben rechts → Token auf GitHub erstellen (klassischer Token, nur Häkchen „gist“) → einfügen → Verbinden. Auf jedem weiteren Gerät denselben Token eintragen. Beim ersten Verbinden legt das Dashboard ein geheimes Gist `dashboard-sync.json` an bzw. findet das vorhandene.
 - **Wann:** beim Start, etwa 2 Sekunden nach jeder Änderung, beim Zurückkehren in den Tab, wenn das Gerät wieder online ist und alle 5 Minuten.
 - **Zusammenführen:** Pro Schlüssel gewinnt die neuere Änderung. Sammlungen von Einträgen mit eigenem `updatedAt` (z. B. Lernzeiten) werden Eintrag für Eintrag zusammengeführt. Gelöschte Einträge bleiben als `deleted: true` stehen, damit das Löschen auf allen Geräten ankommt.
-- **Hinweis:** Ein geheimes Gist ist nicht öffentlich auffindbar, aber für jeden lesbar, der den Link kennt. Der Token wird nur im Browser des jeweiligen Geräts gespeichert.
+- **Hinweis:** Ein geheimes Gist ist nicht öffentlich auffindbar, aber für jeden lesbar, der den Link kennt. Der Token wird nur im Browser des jeweiligen Geräts gespeichert. ⚙︎ zeigt nach jedem Sync „🔒 Geheimes Gist“ bzw. eine Warnung, falls es öffentlich ist. Selbst nachsehen: auf gist.github.com bei deinem Konto – geheime Gists tragen dort das Label „Secret“.
 
 ## Lernzeit-Tracker
 
@@ -146,6 +146,20 @@ Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer,
 - **Ohne Ziel:** Serie und Rekord in Tagen sowie „15× in den letzten 23 Tagen“ (Zeitraum seit dem Anlegen, höchstens 30 Tage).
 - **Mit Wochenziel** (1–7× pro Woche): „2/3 diese Woche“ bzw. „Ziel erreicht“; Serie und Rekord zählen Wochen mit erreichtem Ziel.
 - Daten: `habits.list` (Gewohnheiten) und `habits.days` mit einem Eintrag pro Gewohnheit und Tag (`<id>|JJJJ-MM-TT`, Tagesgrenze Europe/Berlin) inklusive Zeitstempel. Streaks werden immer daraus berechnet. Weil jeder Tag ein eigener Eintrag ist, führt der Gist-Sync Abhaken auf mehreren Geräten tageweise zusammen; auch ein Rückgängigmachen (`done: false`) kommt auf allen Geräten an.
+
+## Aufgaben
+
+Dock-Button 📋. Aufgabe eintippen und Enter – der Fokus bleibt im Feld für die nächste. Optional ein Fälligkeitsdatum daneben.
+
+- **Abhaken** über den Kreis; erledigte rutschen in den eingeklappten Bereich „Erledigt“ (mit Datum) und kommen mit einem Tipp zurück. „Erledigte entfernen“ fragt nach.
+- **Bearbeiten:** Tipp auf den Text (Text und Datum ändern). **Löschen** mit × ohne Rückfrage, dafür 6 Sekunden „Rückgängig“.
+- **Fälligkeit:** „heute“, „morgen“, „in 3 Tagen“, „überfällig seit 2 Tagen“ (überfällige dezent rot hinterlegt). Gerechnet in Kalendertagen nach Europe/Berlin, daher unabhängig von der Zeitumstellung; um Mitternacht aktualisiert sich alles von selbst.
+- **Reihenfolge:** überfällig zuerst, dann nach Datum, dann ohne Datum. Innerhalb gleicher Fälligkeit (bzw. bei „ohne Datum“) lässt sich von Hand umsortieren: Griff ⠿ ziehen – mit Finger, Stift oder Maus, ohne Hover – oder Griff fokussieren und Pfeiltasten.
+- **Heute (☀︎):** markiert eine Aufgabe nur für den heutigen Kalendertag; sie steht dann oben im Bereich „Heute“. Ab 6 Aufgaben erscheint ein sanfter Hinweis, gesperrt wird nichts. Am nächsten Tag stehen nicht erledigte wieder normal in der Liste, und einmal pro Gerät fragt die Kachel „Noch offen von gestern: … – Wieder für heute / Nein, danke“.
+- **Zähler am Dock:** Anzahl offener Aufgaben, die heute fällig oder überfällig sind (farbig, wenn etwas überfällig ist); ohne solche Aufgaben kein Zähler.
+- „Heute“ und Zähler lassen sich unter **Anzeige** in der Kachel abschalten.
+- **Daten und Sync:** `todos.items` mit einem Eintrag pro Aufgabe (ID, Text, Status offen/erledigt/gelöscht, `due` als `YYYY-MM-DD`, `today`, Rang für die Reihenfolge, Zeitstempel), `todos.settings` für die Anzeige. Zusammengeführt wird wie bei der Einkaufsliste über die allgemeine Logik in `js/core/sync.js`: Aufgabe für Aufgabe, die jüngste Änderung gewinnt. Gelöschte bleiben als Grabstein und werden nach 30 Tagen aufgeräumt. Im Export enthalten.
+- **Grenzen:** Ändern zwei Geräte offline *dieselbe* Aufgabe (z. B. Text auf A, abhaken auf B), gewinnt die spätere Änderung als Ganzes. War ein Gerät länger als 30 Tage nicht online, kann eine dort noch offene, anderswo gelöschte Aufgabe zurückkommen.
 
 ## Einkaufsliste
 

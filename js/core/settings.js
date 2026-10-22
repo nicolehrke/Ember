@@ -64,14 +64,17 @@ export function initSettings(root) {
       return;
     }
 
-    body.replaceChildren(
+    body.replaceChildren(...[
       h('p', { class: `settings-state is-${s.state}` }, line),
       h('p', { class: 'settings-error' }, s.message ?? ''),
+      s.gistPublic === true && h('p', { class: 'settings-error' }, 'Achtung: Das Sync-Gist ist öffentlich. Jeder mit dem Link kann deine Daten lesen. Erstelle ein neues, geheimes Gist (Trennen, Gist auf GitHub löschen, neu verbinden).'),
+      s.gistPublic === false && h('p', { class: 'muted small' }, '🔒 Geheimes Gist – nicht öffentlich gelistet, nur über den Link oder deinen Token erreichbar.'),
       h('div', { class: 'settings-actions' },
         h('button', { class: 'chip', type: 'button', onclick: () => syncNow() }, 'Jetzt synchronisieren'),
         h('a', { class: 'chip', href: config.gistUrl, target: '_blank', rel: 'noopener' }, 'Gist öffnen'),
         confirmButton({ class: 'chip', title: 'Die Daten bleiben auf diesem Gerät und im Gist erhalten.' },
-          'Trennen', 'Wirklich trennen?', disconnect)));
+          'Trennen', 'Wirklich trennen?', disconnect)),
+    ].filter(Boolean));
   };
 
   onStatus(next => {
