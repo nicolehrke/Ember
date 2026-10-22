@@ -1,6 +1,7 @@
 import { runMigrations } from './core/migrations.js';
 import { initTheme } from './core/theme.js';
 import { initBriefing } from './core/briefing.js';
+import { initLayout } from './core/layout.js';
 import { initSettings } from './core/settings.js';
 import { initSync } from './core/sync.js';
 import { handleRedirect as handleSpotifyRedirect, refreshStatus as refreshSpotifyStatus } from './spotify/auth.js';
@@ -49,6 +50,8 @@ for (const widget of widgets) {
   if (only && widget.id !== only) continue;
   mountWidget(slots, only ? { ...widget, dock: undefined } : widget);
 }
+// Kacheln verschiebbar, gespeicherte Reihenfolge anwenden (nicht in der Nur-Ansicht)
+if (!only) initLayout(slots.grid);
 
 initBriefing(document.getElementById('brief'));
 initSync();

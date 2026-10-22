@@ -50,6 +50,11 @@ export function mountWidget(slots, widget) {
     const sizeButton = slots.only ? null : h('button', { class: 'icon-btn icon-btn--sm card-tool size-btn', type: 'button' }, icon('resize', 'ln-ic'));
     root = h('article', { class: 'card', id: `card-${widget.id}`, 'data-widget': widget.id, 'data-size': slots.only ? 'l' : widget.size ?? 's' },
       h('header', { class: 'card-header' },
+        slots.only ? null : h('button', {
+          class: 'icon-btn icon-btn--sm card-tool drag-handle', type: 'button',
+          'aria-label': `${widget.title} verschieben – Leertaste greift, Pfeiltasten bewegen`,
+          title: 'Ziehen zum Verschieben (Tastatur: Leertaste, dann Pfeiltasten)',
+        }, icon('grip')),
         h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
         badge,
         actions,

@@ -5,6 +5,7 @@ import { connect, disconnect, syncNow, onStatus, getConfig } from './sync.js';
 import { spotifySettings } from '../spotify/settings-section.js';
 import { alertSettings } from './alert-settings.js';
 import { icon } from './icons.js';
+import { resetLayout } from './layout.js';
 
 const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Ember-Sync';
 const timeFmt = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -25,6 +26,7 @@ export function initSettings(root) {
     h('h2', { class: 'card-title' }, 'Sync zwischen Geräten'),
     body,
     alertSettings(),
+    layoutSettings(),
     spotifySettings());
   root.append(button, panel);
   popover(button, panel, root);
@@ -83,4 +85,17 @@ export function initSettings(root) {
     button.dataset.sync = next.state;
     draw();
   });
+}
+
+// Bereich „Layout“: Reihenfolge (synchronisiert) und Größen (dieses Gerät) auf Standard
+function layoutSettings() {
+  const info = h('p', { class: 'muted small' }, 'Kacheln lassen sich am Kopf verschieben und über den Größen-Button umschalten.');
+  return h('section', { class: 'settings-spotify' },
+    h('h2', { class: 'card-title' }, 'Layout'),
+    info,
+    h('div', { class: 'settings-actions' },
+      confirmButton({ class: 'chip', title: 'Standardreihenfolge und -größen wiederherstellen' }, 'Layout zurücksetzen', 'Wirklich zurücksetzen?', async () => {
+        await resetLayout();
+        info.textContent = 'Reihenfolge und Größen sind zurückgesetzt.';
+      })));
 }

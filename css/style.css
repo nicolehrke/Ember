@@ -245,6 +245,31 @@ body {
 .size-btn { border-color: transparent; background: none; color: var(--text); }
 .size-btn:hover { color: var(--text); border-color: var(--border); }
 .size-btn .ln-ic { width: 18px; height: 18px; }
+/* Verschieben am Kachelkopf (js/core/layout.js) */
+.grid.is-sortable .card-header { cursor: grab; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.drag-handle { margin-left: -10px; border-color: transparent; background: none; color: var(--muted); cursor: grab; }
+.drag-handle:hover { color: var(--text); }
+.drag-handle .ln-ic { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+:root[data-mode="fokus"] .grid.is-sortable .card-header { cursor: auto; }
+:root[data-mode="fokus"] .drag-handle { visibility: hidden; }
+.card.is-dragging {
+  position: fixed;
+  z-index: 60;
+  margin: 0;
+  min-height: 0;
+  background: var(--surface-solid); /* deckend, damit der Inhalt darunter nicht durchscheint */
+  box-shadow: var(--shadow-pop);
+  pointer-events: none;
+  transition: none;
+  will-change: transform;
+}
+.card.is-grabbed { outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: var(--shadow-lift); }
+.card-placeholder { border: 2px dashed var(--accent); border-radius: var(--r-card); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+body.is-card-dragging { cursor: grabbing; -webkit-user-select: none; user-select: none; }
+body.is-card-dragging .grid { z-index: 4; }
+body.is-card-dragging .card-header { cursor: grabbing; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
 /* Touch ohne Hover: erst ein Tipp auf den Kopf blendet die Werkzeuge 4 s ein;
    bis dahin sind sie nicht antippbar (keine versehentlichen Größenwechsel). */
 @media (hover: none) {
