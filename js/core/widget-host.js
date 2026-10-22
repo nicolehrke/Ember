@@ -35,6 +35,7 @@ export function mountWidget(slots, widget) {
 
   let failed = false;
   let running = false;
+  let pending = null;
   let lastRun = 0;
   let timers = [];
 
@@ -66,7 +67,11 @@ export function mountWidget(slots, widget) {
   };
 
   async function run(kind) {
-    if (running) return;
+    // Läuft schon etwas, wird die Anfrage danach nachgeholt (render hat Vorrang).
+    if (running) {
+      pending = pending === 'render' ? 'render' : kind;
+      return;
+    }
     running = true;
     root.classList.add('is-loading');
     try {
@@ -89,6 +94,11 @@ export function mountWidget(slots, widget) {
       lastRun = Date.now();
       running = false;
       root.classList.remove('is-loading');
+      if (pending) {
+        const next = failed ? 'render' : pending;
+        pending = null;
+        run(next);
+      }
     }
   }
 
