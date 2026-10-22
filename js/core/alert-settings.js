@@ -4,8 +4,27 @@
 import { h } from './dom.js';
 import {
   SOUNDS, getAlertSettings, setAlertSettings, alertSettingsReady, onAlerts, unlockAudio, playOnce,
-  isAudioReady, audioSupported, notificationCapability, requestNotifications, wakeLockSupported,
+  isAudioReady, audioSupported, notificationCapability, requestNotifications, wakeLockSupported, isMuted, setMuted,
 } from './alerts.js';
+
+// Stumm-Schalter oben neben ⚙︎: schaltet jeden Ton von Ember auf diesem Gerät ab
+// (Pomodoro, Timer, Wecker, Testton). Fenster, Tab-Titel und Benachrichtigungen bleiben – lautlos.
+export function muteButton() {
+  const button = h('button', { class: 'icon-btn mute-btn', type: 'button' });
+  const draw = () => {
+    const muted = isMuted();
+    button.textContent = muted ? '🔕' : '🔔';
+    button.setAttribute('aria-pressed', String(muted));
+    button.classList.toggle('is-muted', muted);
+    const text = muted ? 'Stumm – Ember spielt keinen Ton (klicken für Ton an)' : 'Ton an (klicken für stumm)';
+    button.title = text;
+    button.setAttribute('aria-label', muted ? 'Stumm, Ton einschalten' : 'Stumm schalten');
+  };
+  button.addEventListener('click', () => setMuted(!isMuted()));
+  alertSettingsReady().then(draw);
+  onAlerts(draw);
+  return button;
+}
 
 export function alertSettings() {
   const section = h('section', { class: 'settings-spotify' });
@@ -23,6 +42,11 @@ export function alertSettings() {
     const test = h('button', {
       class: 'chip', type: 'button',
       onclick: () => {
+        if (isMuted()) {
+          test.textContent = 'Stumm ist an';
+          setTimeout(() => { test.textContent = 'Testton'; }, 2000);
+          return;
+        }
         unlockAudio();
         playOnce(sound.value, volume.value / 100);
       },
@@ -54,7 +78,8 @@ export function alertSettings() {
 
     section.replaceChildren(...[
       h('h2', { class: 'card-title' }, 'Timer & Wecker'),
-      !audioSupported()
+      isMuted() ? h('p', { class: 'settings-state is-off' }, '🔕 Stumm – Ember spielt keinen Ton (Schalter oben neben ⚙︎)')
+      : !audioSupported()
         ? h('p', { class: 'settings-error' }, 'Dieser Browser kann keine Töne erzeugen.')
         : h('p', { class: `settings-state is-${isAudioReady() ? 'ok' : 'off'}` }, isAudioReady() ? 'Ton ist freigeschaltet' : 'Ton noch nicht freigeschaltet – ein Klick irgendwo in Ember genügt'),
       h('div', { class: 'settings-form' }, sound, test),

@@ -1461,3 +1461,8 @@ a.music-title:hover { text-decoration: underline; }
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   font-size: 0.9rem;
 }
+
+/* ---------- Stumm ---------- */
+.mute-btn.is-muted { background: var(--accent); border-color: var(--accent); }
+.mute-hint[hidden] { display: none; }
+.mute-hint { margin: 0 0 12px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); font-size: 0.9rem; }

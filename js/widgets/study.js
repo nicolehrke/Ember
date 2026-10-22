@@ -13,7 +13,7 @@ import { h, confirmButton } from '../core/dom.js';
 import { createPomodoro } from './pomodoro.js';
 import { createTimers } from './timers.js';
 import { createAlarms } from './alarms.js';
-import { getAlertSettings, onAlerts, isAudioReady, unlockAudio, keepScreenOn } from '../core/alerts.js';
+import { getAlertSettings, onAlerts, isAudioReady, unlockAudio, keepScreenOn, isMuted } from '../core/alerts.js';
 import { exportBackup, importBackup } from '../core/backup.js';
 import { setTitlePart } from '../core/title.js';
 
@@ -98,6 +98,7 @@ export default {
     // Browser spielen Ton erst nach einem Klick – solange etwas läuft, darauf hinweisen.
     const soundHint = h('button', { class: 'sound-hint', type: 'button', hidden: true, onclick: () => unlockAudio() },
       '🔇 Ton ist gesperrt – hier tippen, damit Timer und Wecker hörbar klingeln');
+    const muteHint = h('p', { class: 'mute-hint', hidden: true }, '🔕 Stumm – Timer und Wecker zeigen nur das Fenster, ohne Ton.');
     const timeEl = h('span', { class: 'study-time' });
     const startStop = h('button', { class: 'study-btn', type: 'button' });
     const pauseButton = h('button', { class: 'study-btn study-btn--secondary', type: 'button', hidden: true });
@@ -125,6 +126,7 @@ export default {
       dataPanel,
       modeSwitch,
       soundHint,
+      muteHint,
       h('div', { class: 'study-timer' },
         h('div', { class: 'study-timer-main' }, subjectSelect, timeEl),
         freeButtons),
@@ -185,7 +187,9 @@ export default {
       setTitlePart('study', ownTitle || getAlertSettings().tabTitle !== false ? first?.title : (pomo ?? free)?.title);
 
       const active = Boolean(running && !paused) || Boolean(pomo && pomo.ms !== Infinity) || timers.hasRunning();
-      soundHint.hidden = isAudioReady() || !(timers.hasRunning() || (pomo && pomo.ms !== Infinity));
+      const alertsInUse = timers.hasRunning() || (pomo && pomo.ms !== Infinity) || mode === 'timer' || mode === 'alarm';
+      muteHint.hidden = !isMuted() || !alertsInUse;
+      soundHint.hidden = isMuted() || isAudioReady() || !(timers.hasRunning() || (pomo && pomo.ms !== Infinity));
       keepScreenOn(active || alarms.soonWithin(12 * 60 * 60 * 1000));
 
       timeEl.textContent = clock(running ? elapsed(running) : 0);

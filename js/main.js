@@ -6,6 +6,7 @@ import { handleRedirect as handleSpotifyRedirect, refreshStatus as refreshSpotif
 import { mountWidget } from './core/widget-host.js';
 import { setTitleBase } from './core/title.js';
 import { setMusicHook } from './core/ringer.js';
+import { muteButton } from './core/alert-settings.js';
 import { getPlayerState, togglePlay } from './spotify/player.js';
 import widgets from './widgets/index.js';
 
@@ -22,6 +23,7 @@ await refreshSpotifyStatus();
 
 initTheme(document.getElementById('theme-toggle'));
 initSettings(document.getElementById('settings'));
+document.getElementById('settings').before(muteButton());
 
 const slots = {
   hero: document.getElementById('slot-hero'),

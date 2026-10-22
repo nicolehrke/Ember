@@ -3,16 +3,17 @@
 // Ton: über die Web Audio API, ohne Dateien. Browser erlauben Ton erst nach einer
 // Nutzeraktion – nach jedem Neuladen erneut. Der erste Klick/Tastendruck irgendwo in
 // Ember schaltet ihn frei (unlock); bis dahin ist isAudioReady() false.
-// Einstellungen pro Gerät in 'local/alerts': { sound, volume, notify, wakeLock, tabTitle, snooze }.
+// Einstellungen pro Gerät in 'local/alerts': { sound, volume, notify, wakeLock, tabTitle, snooze, muted }.
+// „Stumm“ (muted) setzt die Gesamtlautstärke hart auf 0 – kein Ton von Ember, egal was klingelt.
 import { load, save, subscribe } from './storage.js';
 
 const SETTINGS_KEY = 'local/alerts';
-export const DEFAULT_SETTINGS = { sound: 'glocke', volume: 0.6, notify: false, wakeLock: false, tabTitle: true, snooze: 5 };
+export const DEFAULT_SETTINGS = { sound: 'glocke', volume: 0.6, notify: false, wakeLock: false, tabTitle: true, snooze: 5, muted: false };
 
 // ---------- Einstellungen ----------
 let settings = { ...DEFAULT_SETTINGS };
 const settingsReady = load(SETTINGS_KEY, {}).then(v => { settings = { ...DEFAULT_SETTINGS, ...(v && typeof v === 'object' ? v : {}) }; });
-subscribe(SETTINGS_KEY, v => { settings = { ...DEFAULT_SETTINGS, ...(v ?? {}) }; notify(); });
+subscribe(SETTINGS_KEY, v => { settings = { ...DEFAULT_SETTINGS, ...(v ?? {}) }; applyMute(); notify(); });
 export const getAlertSettings = () => settings;
 export async function setAlertSettings(patch) {
   await settingsReady;
@@ -20,6 +21,8 @@ export async function setAlertSettings(patch) {
   await save(SETTINGS_KEY, settings);
 }
 export const alertSettingsReady = () => settingsReady;
+export const isMuted = () => Boolean(settings.muted);
+export const setMuted = muted => setAlertSettings({ muted: Boolean(muted) });
 
 // ---------- Zustand für die Oberfläche ----------
 const listeners = new Set();
@@ -30,25 +33,48 @@ export function onAlerts(fn) {
 }
 
 // ---------- Audio ----------
+// Alle Töne laufen über master (Gesamtlautstärke). Stumm = master auf 0.
 let audio = null;
+let master = null;
+function applyMute() {
+  if (master && audio) master.gain.setValueAtTime(settings.muted ? 0 : 1, audio.currentTime);
+}
 export function unlockAudio() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return false;
   try {
-    if (!audio) {
+    if (!audio || audio.state === 'closed') {
       audio = new AC();
       audio.addEventListener?.('statechange', notify);
+      master = audio.createGain();
+      master.connect(audio.destination);
+      applyMute();
     }
-    audio.resume?.().then(notify, () => {});
+    if (audio.state !== 'running') {
+      // Safari gibt Web Audio erst frei, wenn innerhalb der Nutzeraktion etwas abgespielt wird:
+      // ein stiller Ein-Sample-Puffer genügt.
+      const silent = audio.createBufferSource();
+      silent.buffer = audio.createBuffer(1, 1, 22050);
+      silent.connect(audio.destination);
+      silent.start(0);
+      audio.resume?.().then(notify, () => {});
+    }
   } catch { /* ohne Ton weiter */ }
   return true;
 }
 export const isAudioReady = () => audio?.state === 'running';
 export const audioSupported = () => Boolean(window.AudioContext || window.webkitAudioContext);
 
-// Erster Klick oder Tastendruck irgendwo schaltet den Ton frei.
-for (const type of ['pointerdown', 'keydown', 'touchend']) {
+// Erster Klick oder Tastendruck irgendwo schaltet den Ton frei (Safari zählt nicht jedes Ereignis).
+for (const type of ['pointerdown', 'mousedown', 'click', 'keydown', 'touchend']) {
   window.addEventListener(type, () => { if (!isAudioReady()) unlockAudio(); }, { capture: true, passive: true });
+}
+
+// Erst abspielen, wenn der Kontext wirklich läuft (direkt nach resume() steht die Zeit noch).
+function whenRunning(fn) {
+  if (audio.state === 'running') return fn();
+  audio.resume?.().then(() => { if (audio.state === 'running') fn(); }, () => {});
+  return undefined;
 }
 
 // Ein Ton: Sinus/Dreieck mit sanftem Ein- und Ausschwingen
@@ -60,7 +86,7 @@ function note(freq, at, length, peak, type = 'sine') {
   gain.gain.setValueAtTime(0.0001, at);
   gain.gain.exponentialRampToValueAtTime(peak, at + 0.03);
   gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
-  osc.connect(gain).connect(audio.destination);
+  osc.connect(gain).connect(master);
   osc.start(at);
   osc.stop(at + length + 0.05);
 }
@@ -75,10 +101,11 @@ export const SOUNDS = {
 
 // Einmal abspielen (z. B. Pomodoro-Phasenwechsel, Testton)
 export function playOnce(soundId = settings.sound, volume = settings.volume) {
+  if (settings.muted) return;
   if (!audio) unlockAudio();
   if (!audio) return;
   const sound = SOUNDS[soundId] ?? SOUNDS.glocke;
-  sound.play(audio.currentTime + 0.02, Math.max(0.0002, 0.25 * volume));
+  whenRunning(() => sound.play(audio.currentTime + 0.05, Math.max(0.0002, 0.25 * volume)));
 }
 
 // In Dauerschleife bis stop(); beginnt leise und wird über 15 s lauter (nicht erschreckend).
@@ -90,8 +117,9 @@ export function playLoop(soundId = settings.sound, volume = settings.volume) {
   let stopped = false;
   const step = () => {
     if (stopped) return;
+    // Bei „Stumm“ läuft die Schleife still weiter – wird der Ton wieder eingeschaltet, klingelt es hörbar.
     const ramp = Math.min(1, 0.3 + (Date.now() - startedAt) / 15000 * 0.7);
-    sound.play(audio.currentTime + 0.02, Math.max(0.0002, 0.25 * volume * ramp));
+    if (!settings.muted) whenRunning(() => sound.play(audio.currentTime + 0.05, Math.max(0.0002, 0.25 * volume * ramp)));
     timer = setTimeout(step, (sound.length + 0.4) * 1000);
   };
   let timer = null;
@@ -126,7 +154,7 @@ export async function requestNotifications() {
 export function showNotification(title, body, tag) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return null;
   try {
-    return new Notification(title, { body, tag, requireInteraction: tag === 'ring' });
+    return new Notification(title, { body, tag, requireInteraction: tag === 'ring', silent: Boolean(settings.muted) });
   } catch {
     return null; // z. B. iPad ohne Unterstützung
   }
