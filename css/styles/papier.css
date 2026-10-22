@@ -1,0 +1,86 @@
+/* ---------- Stil „Papier“ (nur hell) ----------
+   Heller, warmer Grund ohne Glühen und ohne Kartenflächen; Kacheln nur durch eine 2-px-Linie
+   oben getrennt. Newsreader für Uhr, Satz und Titel, ein Tinten-Akzent pro Phase, alle Radien 0.
+   Phasen: Zitrus (5–10, Blau), Kobalt (10–16, Rot), Orchidee (16–19, Ocker), Beere (19–23, Pflaume),
+   Eis (23–5, Schiefer). Jede Tinte hält auf dem Papiergrund mindestens 5:1. */
+
+:root {
+  --bg: #F4EFE6;
+  --surface: transparent;
+  --surface-solid: #FBF8F2;
+  --surface-2: #E9E1D3;
+  --border: #D8CEBF;
+  --text: #1A1714;
+  --muted: #5E564C;
+  --dim: #75695C;
+  --accent: var(--ui);
+  --on: #FFFFFF;
+  --gm: 0;
+
+  --dock-on-bg: none;
+  --dock-on-fg: var(--accent);
+  --dock-on-border: transparent;
+  --card-bg: transparent;
+  --card-border: 0;
+  --card-shadow: none;
+  --shadow-pop: 0 10px 30px rgba(26, 23, 20, 0.12);
+  --shadow-sm: none;
+
+  --r-card: 0;
+  --r-md: 0;
+  --r-sm: 0;
+  --r-pill: 0;
+  --r-dock: 0;
+  --r-icon: 0;
+  --r-round: 0;
+  --font-display: Newsreader, Georgia, "Times New Roman", serif;
+  --font-brief: Newsreader, Georgia, "Times New Roman", serif;
+  --font-title: Newsreader, Georgia, "Times New Roman", serif;
+  color-scheme: light;
+}
+
+.glow { display: none; }
+
+/* Kopf mit Doppellinie */
+.top { border-top: 3px double var(--text); padding-top: 14px; }
+.hero-greeting, .hero-date { font-family: var(--font-brief); font-style: italic; font-size: 17px; }
+.hero-time { font-weight: 400; letter-spacing: -0.03em; font-size: clamp(80px, 14vw, 170px); }
+.brief { font-style: normal; font-weight: 500; font-size: clamp(26px, 3.4vw, 44px); line-height: 1.15; letter-spacing: -0.01em; }
+.brief .hl { font-weight: 500; border-bottom: 2px solid var(--accent); }
+
+/* Dock als Textleiste ohne Symbole, aktiv = Tinte mit Unterstrich */
+.dock { gap: 2px 24px; border-bottom: 1px solid var(--text); }
+.dock-btn {
+  flex-direction: row;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 2px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  font-family: var(--font-brief);
+  font-size: 18px;
+  color: var(--muted);
+}
+.dock-btn .dock-icon { display: none; }
+.dock-top { order: 2; }
+.dock-btn:hover { background: none; color: var(--text); }
+.dock-btn[aria-pressed="true"] { border-bottom-color: var(--accent); font-weight: 600; }
+.dock-btn.is-highlight { border-color: transparent; border-bottom-color: var(--warn); }
+.dock-btn.is-highlight[aria-pressed="true"] { border-bottom-color: var(--accent); }
+.dock-badge { font-family: var(--font); font-size: 13px; }
+
+/* Kacheln: nur eine Linie oben */
+.grid { gap: 30px 38px; }
+.card { border-top: 2px solid var(--text); padding: 10px 0 14px; }
+.card-title { font-style: italic; font-weight: 500; font-size: 17px; letter-spacing: 0; text-transform: none; color: var(--accent); }
+.hero-time, .study-time, .pomo-time, .focus-time, .timer-time, .alarm-time, .wx-temp { font-family: var(--font-display); font-weight: 400; }
+
+/* Bedienelemente: eckig, durchsichtig, Linien in Tinte */
+.chip, .tt-toggle, .wx-toggle, .icon-btn:not(.icon-btn--xs), .music-btn, .shop-chip, .alarm-day { background: transparent; border-color: var(--text); }
+.chip--accent, .alarm-day[aria-pressed="true"] { background: var(--primary-bg); border-color: var(--primary-border); }
+.music-btn--main { background: var(--primary-bg); border-color: var(--primary-border); }
+.popover { border-color: var(--text); }
+.segment[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.habit-check, .habit-dot, .shop-check, .dot, .theme-swatch, .tt-flag, .card-badge, .tag, .exam-open-tag, .sync-dot { border-radius: 0; }
+.study-btn.is-running { box-shadow: none; }
+.size-btn[aria-pressed="true"] { background: none; color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
