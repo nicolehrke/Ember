@@ -5,8 +5,10 @@
 //   id, title, icon?, refreshInterval? (ms)
 //   placement?   – 'grid' (Kachel, Standard), 'hero' (großer Kopfbereich links)
 //                  oder 'header' (kompakt oben rechts, ohne Kachel)
-//   size?        – nur für 'grid': 'normal' | 'wide'
-//   dock?        – nur für 'grid': { icon, label } – Button in der Dock-Leiste öffnet/schließt
+//   size?        – nur für 'grid': Standardgröße 's' (1 Zelle), 'm' (2 breit) oder 'l' (2 × 2);
+//                  umschaltbar im Kachelkopf, gemerkt pro Gerät in 'local/sizes'
+//   dock?        – nur für 'grid': { icon, label } – icon ist ein Name aus core/icons.js;
+//                  der Button in der Dock-Leiste öffnet/schließt
 //                  die Kachel; geschlossene Kacheln laufen unsichtbar weiter (z. B. Timer)
 //   defaultOpen? – mit dock: ohne gespeicherten Zustand geöffnet? Der Zustand wird pro
 //                  Gerät in 'local/open' gespeichert (nicht synchronisiert).
@@ -14,6 +16,12 @@
 //   refresh?(container, ctx) – aktualisiert Daten; fehlt es, wird render() erneut aufgerufen
 import { scope, load, save } from './storage.js';
 import { h } from './dom.js';
+import { icon } from './icons.js';
+
+const SIZES = { s: 'Klein', m: 'Mittel', l: 'Groß' };
+const SIZE_KEY = 'local/sizes';
+let sizesPromise = null;
+const sizeState = () => (sizesPromise ??= load(SIZE_KEY, {}));
 
 export function mountWidget(slots, widget) {
   const placement = widget.placement ?? 'grid';
@@ -35,14 +43,17 @@ export function mountWidget(slots, widget) {
     const close = widget.dock
       ? h('button', { class: 'icon-btn icon-btn--sm card-close', type: 'button', 'aria-label': `${widget.title} schließen`, title: 'Schließen' }, '×')
       : null;
-    root = h('article', { class: `card card--${widget.size ?? 'normal'}`, id: `card-${widget.id}`, 'data-widget': widget.id },
+    const sizeSwitch = slots.only ? null : h('div', { class: 'size-switch', role: 'group', 'aria-label': `Größe von ${widget.title}` });
+    root = h('article', { class: 'card', id: `card-${widget.id}`, 'data-widget': widget.id, 'data-size': slots.only ? 'l' : widget.size ?? 's' },
       h('header', { class: 'card-header' },
         h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
         badge,
         actions,
+        sizeSwitch,
         close),
       body,
       status);
+    if (sizeSwitch) mountSizeSwitch(sizeSwitch, widget, root);
     if (widget.dock) dock = mountDockButton(slots, widget, root, close);
   }
   (slots[placement] ?? slots.grid).append(root);
@@ -107,6 +118,10 @@ export function mountWidget(slots, widget) {
         root.title = text ?? '';
       }
     },
+    // Leere Kachel (z. B. keine Einträge) schrumpft auf eine Zeile.
+    setEmpty(empty) {
+      root.classList.toggle('is-empty', Boolean(empty));
+    },
     refresh: () => run(failed || !widget.refresh ? 'render' : 'refresh'),
   };
 
@@ -158,6 +173,29 @@ export function mountWidget(slots, widget) {
   }
 }
 
+// ---------- Kachelgröße ----------
+function mountSizeSwitch(group, widget, card) {
+  const buttons = Object.entries(SIZES).map(([id, label]) => h('button', {
+    class: 'size-btn', type: 'button', 'data-size': id, title: `${label} (${id.toUpperCase()})`, 'aria-label': `${label}e Kachel`,
+  }, id.toUpperCase()));
+  group.append(...buttons);
+  const set = size => {
+    card.dataset.size = size;
+    for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.size === size));
+  };
+  set(card.dataset.size);
+  sizeState().then(state => { if (SIZES[state[widget.id]]) set(state[widget.id]); });
+  group.addEventListener('click', event => {
+    const size = event.target.closest('.size-btn')?.dataset.size;
+    if (!size) return;
+    set(size);
+    sizeState().then(state => {
+      state[widget.id] = size;
+      save(SIZE_KEY, state);
+    });
+  });
+}
+
 // ---------- Dock ----------
 // Welche Dock-Kacheln offen sind, gilt pro Gerät (Mac und iPad dürfen sich unterscheiden).
 const OPEN_KEY = 'local/open';
@@ -165,15 +203,15 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 let openStatePromise = null;
 const openState = () => (openStatePromise ??= load(OPEN_KEY, {}));
 
-// Button in der Dock-Leiste (nur Symbol, Beschriftung als Tooltip/aria-label); gibt { button, badge } zurück.
+// Button in der Dock-Leiste (Liniensymbol über Beschriftung, Status daneben); gibt { button, badge } zurück.
 function mountDockButton(slots, widget, card, close) {
   const dockBadge = h('span', { class: 'dock-badge', hidden: true });
   const button = h('button', {
     class: 'dock-btn', type: 'button', 'aria-pressed': 'false', 'aria-controls': card.id,
     'aria-label': widget.dock.label, title: widget.dock.label,
   },
-  h('span', { class: 'dock-icon', 'aria-hidden': 'true' }, widget.dock.icon),
-  dockBadge);
+  h('span', { class: 'dock-top' }, icon(widget.dock.icon, 'ln-ic dock-icon'), dockBadge),
+  h('span', { class: 'dock-label', 'aria-hidden': 'true' }, widget.dock.label));
   slots.dock.append(button);
 
   const setOpen = (open, { animate = true, persist = true } = {}) => {
@@ -190,7 +228,7 @@ function mountDockButton(slots, widget, card, close) {
       if (animate) card.scrollIntoView({ block: 'nearest', behavior: motion ? 'smooth' : 'auto' });
     } else if (motion && !card.hidden) {
       card.classList.add('is-leaving');
-      // Nach der Animation verstecken – spätestens nach 250 ms, falls das Ende-Signal
+      // Nach der Animation verstecken – spätestens nach 300 ms, falls das Ende-Signal
       // ausbleibt (z. B. gedrosselter Hintergrund-Tab).
       let done = false;
       const finish = () => {
@@ -201,7 +239,7 @@ function mountDockButton(slots, widget, card, close) {
         if (button.getAttribute('aria-pressed') === 'false') card.hidden = true;
       };
       card.addEventListener('animationend', finish, { once: true });
-      setTimeout(finish, 250);
+      setTimeout(finish, 300);
     } else {
       card.hidden = true;
     }

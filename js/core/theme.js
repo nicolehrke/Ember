@@ -1,30 +1,153 @@
-// Hell/Dunkel-Umschaltung: System → Hell → Dunkel → System …
-import { load, save } from './storage.js';
+// Design: Stil (Glut, Glas, Papier, Jarvis), Hell/Dunkel und Tageszeit-Akzente.
+//
+// Auf <html> sitzen data-style und data-theme ('dark' | 'light'); das Stylesheet
+// css/styles/<stil>.css und die Schriften des Stils werden nur geladen, wenn er aktiv ist.
+// Die Wahl liegt unter 'design' = { style, mode: 'system' | 'light' | 'dark' } und wird
+// synchronisiert. Akzentfarben (--ui, --glow-rgb, --k, --breath) folgen minütlich der Uhrzeit.
+import { load, save, remove, subscribe } from './storage.js';
+import { h } from './dom.js';
+import { popover } from './popover.js';
+import { icon } from './icons.js';
+import { STYLES, DEFAULT_STYLE, sample, phaseOf, breathFor } from '../theme/palettes.js';
 
-const MODES = {
-  system: { icon: '◐', label: 'System' },
-  light: { icon: '☼', label: 'Hell' },
-  dark: { icon: '☾', label: 'Dunkel' },
-};
-const ORDER = Object.keys(MODES);
+const KEY = 'design';
+const MODES = { system: 'System', light: 'Hell', dark: 'Dunkel' };
+const root = document.documentElement;
+const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 
-function apply(mode, button) {
-  const root = document.documentElement;
-  if (mode === 'system') delete root.dataset.theme;
-  else root.dataset.theme = mode;
-  button.textContent = MODES[mode].icon;
-  button.title = `Design: ${MODES[mode].label} (klicken zum Umschalten)`;
-  button.setAttribute('aria-label', button.title);
+let design = { style: DEFAULT_STYLE, mode: 'system' };
+let phase = null;
+const phaseListeners = new Set();
+let drawMenu = () => {};
+
+const valid = d => ({
+  style: STYLES[d?.style] ? d.style : DEFAULT_STYLE,
+  mode: MODES[d?.mode] ? d.mode : 'system',
+});
+
+// Stile mit nur einem Modus erzwingen ihn; sonst gilt die Wahl bzw. das System.
+export function resolvedTheme(d = design) {
+  const { modes } = STYLES[d.style];
+  if (modes.length === 1) return modes[0];
+  if (d.mode === 'system') return systemDark.matches ? 'dark' : 'light';
+  return d.mode;
 }
 
-export async function initTheme(button) {
-  let mode = await load('local/theme', 'system');
-  if (!ORDER.includes(mode)) mode = 'system';
-  apply(mode, button);
+// Stylesheet/Schriften tauschen: neues Element erst laden, dann das alte entfernen (kein Aufblitzen).
+function swapLink(id, href) {
+  const old = document.getElementById(id);
+  if (!href) return void old?.remove();
+  if (old?.getAttribute('href') === href) return;
+  const link = h('link', { rel: 'stylesheet', href });
+  link.addEventListener('load', () => { old?.remove(); link.id = id; }, { once: true });
+  link.addEventListener('error', () => { old?.remove(); link.id = id; }, { once: true });
+  (old ?? document.getElementById('style-css') ?? document.head.lastElementChild).after(link);
+}
 
-  button.addEventListener('click', () => {
-    mode = ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length];
-    apply(mode, button);
-    save('local/theme', mode);
+function applyDesign() {
+  root.dataset.style = design.style;
+  root.dataset.theme = resolvedTheme();
+  swapLink('style-css', `css/styles/${design.style}.css`);
+  swapLink('style-fonts', `https://fonts.googleapis.com/css2?${STYLES[design.style].fonts}&display=swap`);
+  applyAccent();
+  drawMenu();
+}
+
+function applyAccent() {
+  const now = new Date();
+  const hour = now.getHours() + now.getMinutes() / 60;
+  const s = sample(design.style, hour);
+  root.style.setProperty('--ui', `rgb(${s.ui.join(' ')})`);
+  root.style.setProperty('--glow-rgb', s.glow.join(' '));
+  root.style.setProperty('--k', s.k.toFixed(3));
+  root.style.setProperty('--breath', `${breathFor(hour)}s`);
+  const next = phaseOf(design.style, hour);
+  root.dataset.phase = String(next.index);
+  if (next.index !== phase?.index || next.name !== phase?.name) {
+    phase = next;
+    for (const fn of phaseListeners) fn(phase);
+  }
+}
+
+// Aktuelle Tageszeit-Phase { index 0–4, name } und Abo auf Wechsel.
+export const currentPhase = () => phase;
+export function onPhase(fn) {
+  phaseListeners.add(fn);
+  return () => phaseListeners.delete(fn);
+}
+
+async function setDesign(next) {
+  design = valid({ ...design, ...next });
+  applyDesign();
+  await save(KEY, design);
+}
+
+// Palettensymbol mit Menü: vier Stile (Name + Farbvorschau) und Hell/Dunkel.
+function mountMenu(slot) {
+  const button = h('button', { class: 'icon-btn theme-btn', type: 'button', title: 'Stil', 'aria-label': 'Stil und Hell/Dunkel', 'aria-controls': 'theme-panel' }, icon('palette'));
+  const list = h('div', { class: 'theme-styles', role: 'group', 'aria-label': 'Stil' });
+  const modeSwitch = h('div', { class: 'segmented theme-modes', role: 'group', 'aria-label': 'Hell oder dunkel' });
+  const hint = h('p', { class: 'muted small theme-hint' });
+  const panel = h('div', { class: 'popover theme-panel', id: 'theme-panel', hidden: true },
+    h('h2', { class: 'card-title' }, 'Stil'),
+    list,
+    h('h2', { class: 'card-title theme-subtitle' }, 'Hell / Dunkel'),
+    modeSwitch,
+    hint);
+  slot.append(button, panel);
+  popover(button, panel, slot);
+
+  // Buttons nur einmal bauen, danach nur Zustand setzen (Tastaturfokus bleibt erhalten).
+  const styleButtons = Object.entries(STYLES).map(([id, s]) => {
+    const info = h('span', { class: 'muted small' });
+    const button = h('button', { class: 'theme-style', type: 'button', onclick: () => setDesign({ style: id }) },
+      h('span', { class: 'theme-swatch', 'aria-hidden': 'true' }, ...s.swatch.map(c => h('span', { style: `background:${c}` }))),
+      h('span', { class: 'theme-style-text' }, h('span', { class: 'theme-style-name' }, s.label), info));
+    return { id, s, button, info };
   });
+  list.append(...styleButtons.map(b => b.button));
+  const modeButtons = Object.entries(MODES).map(([id, label]) => ({
+    id, button: h('button', { class: 'segment', type: 'button', onclick: () => setDesign({ mode: id }) }, label),
+  }));
+  modeSwitch.append(...modeButtons.map(b => b.button));
+
+  drawMenu = () => {
+    const hour = new Date().getHours() + new Date().getMinutes() / 60;
+    for (const { id, s, button, info } of styleButtons) {
+      button.setAttribute('aria-pressed', String(design.style === id));
+      info.textContent = `${s.modes.length === 2 ? 'Hell & dunkel' : s.modes[0] === 'dark' ? 'Nur dunkel' : 'Nur hell'} · jetzt ${phaseOf(id, hour).name}`;
+    }
+    const fixed = STYLES[design.style].modes.length === 1;
+    for (const { id, button } of modeButtons) {
+      button.disabled = fixed;
+      button.setAttribute('aria-pressed', String(fixed ? id === resolvedTheme() : design.mode === id));
+    }
+    hint.textContent = fixed
+      ? `${STYLES[design.style].label} gibt es nur ${resolvedTheme() === 'dark' ? 'dunkel' : 'hell'} – der Schalter gilt für Glut.`
+      : 'System folgt der Einstellung des Geräts.';
+  };
+  drawMenu();
+}
+
+export async function initTheme(slot) {
+  let stored = await load(KEY, null);
+  // Früher: nur Hell/Dunkel unter 'local/theme' (nicht synchronisiert) – einmalig übernehmen.
+  const legacy = await load('local/theme', null);
+  if (!stored && legacy) {
+    stored = { style: DEFAULT_STYLE, mode: legacy };
+    await save(KEY, valid(stored));
+  }
+  if (legacy) await remove('local/theme');
+  design = valid(stored);
+  mountMenu(slot);
+  applyDesign();
+
+  // Wahl von anderen Geräten (Sync) oder Tabs, Systemwechsel Hell/Dunkel
+  subscribe(KEY, v => { design = valid(v); applyDesign(); });
+  systemDark.addEventListener('change', applyDesign);
+
+  // Minütlich, pünktlich zur vollen Minute; nach Ruhezustand sofort
+  const tick = () => { applyAccent(); drawMenu(); };
+  setTimeout(() => { tick(); setInterval(tick, 60 * 1000); }, 60 * 1000 - (Date.now() % 60000) + 50);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 }

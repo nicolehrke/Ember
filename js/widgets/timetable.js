@@ -8,6 +8,7 @@ import { h, confirmButton } from '../core/dom.js';
 import { fetchText } from '../core/http.js';
 import { popover } from '../core/popover.js';
 import { parseICS, expand } from '../core/ical.js';
+import { setFact } from '../core/briefing.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const DAYS_PER_PAGE = 2;
@@ -110,12 +111,17 @@ export default {
       let title = 'Stundenplan';
 
       if (!state.data) {
+        setFact('timetable', null);
         label.textContent = state.problem ? 'Stundenplan ⚠︎' : 'Stundenplan einrichten';
         title = state.problem ?? 'Stundenplan einrichten';
       } else {
         const upcoming = expand(state.events, now, now + LOOKAHEAD).filter(o => !o.cancelled && !o.allDay);
         const current = upcoming.find(o => o.start <= now && o.end > now);
         const following = upcoming.find(o => o.start > now);
+        setFact('timetable', {
+          current: current ? { title: current.title, end: current.end } : null,
+          next: following ? { title: following.title, start: following.start } : null,
+        });
         if (current) {
           label.append(h('strong', {}, 'Jetzt '), `${current.title} · noch ${span(current.end - now)}`);
           title = `${current.title}, ${timeFmt.format(current.start)}–${timeFmt.format(current.end)}${current.location ? `, ${current.location}` : ''}`;

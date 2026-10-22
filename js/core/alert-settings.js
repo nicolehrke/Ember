@@ -2,6 +2,7 @@
 // Benachrichtigungen (mit Hinweis, was auf diesem Gerät geht), Bildschirm anlassen, Tab-Titel.
 // Alles pro Gerät (local/alerts).
 import { h } from './dom.js';
+import { icon } from './icons.js';
 import {
   SOUNDS, getAlertSettings, setAlertSettings, alertSettingsReady, onAlerts, unlockAudio, playOnce,
   isAudioReady, audioSupported, notificationCapability, requestNotifications, wakeLockSupported, isMuted, setMuted,
@@ -13,7 +14,7 @@ export function muteButton() {
   const button = h('button', { class: 'icon-btn mute-btn', type: 'button' });
   const draw = () => {
     const muted = isMuted();
-    button.textContent = muted ? '🔕' : '🔔';
+    button.replaceChildren(icon(muted ? 'bell-off' : 'bell'));
     button.setAttribute('aria-pressed', String(muted));
     button.classList.toggle('is-muted', muted);
     const text = muted ? 'Stumm – Ember spielt keinen Ton (klicken für Ton an)' : 'Ton an (klicken für stumm)';

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="de" data-style="glut">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -8,16 +8,27 @@
   <meta name="apple-mobile-web-app-title" content="Ember">
   <title>Ember</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23c8553d'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="css/style.css">
+  <!-- Stil-Datei und Schriften tauscht js/core/theme.js je nach gewähltem Stil aus -->
+  <link id="style-css" rel="stylesheet" href="css/styles/glut.css">
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
+  <div class="glow" aria-hidden="true">
+    <div class="glow-layer glow-calm"><b></b></div>
+    <div class="glow-layer glow-focus"><b></b></div>
+  </div>
+
   <header class="top">
+    <svg class="hud" viewBox="0 0 300 300" aria-hidden="true"><g fill="none" stroke="currentColor"><circle cx="150" cy="150" r="140" stroke-width="1" stroke-dasharray="2 8"/><circle class="hud-spin" cx="150" cy="150" r="118" stroke-width="2" stroke-dasharray="60 30 10 30"/><circle cx="150" cy="150" r="96" stroke-width="1"/><path d="M150 4v22M150 274v22M4 150h22M274 150h22" stroke-width="2"/></g></svg>
     <div id="slot-hero" class="slot-hero"></div>
+    <div class="say"><p id="brief" class="brief" aria-live="polite"></p></div>
     <div class="top-tools">
       <div id="slot-header" class="slot-header"></div>
+      <div id="theme" class="theme-menu"></div>
       <div id="settings" class="settings"></div>
-      <button id="theme-toggle" class="icon-btn" type="button"></button>
     </div>
   </header>
 

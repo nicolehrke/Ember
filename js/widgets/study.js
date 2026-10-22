@@ -16,11 +16,13 @@ import { createAlarms } from './alarms.js';
 import { getAlertSettings, onAlerts, isAudioReady, unlockAudio, keepScreenOn, isMuted } from '../core/alerts.js';
 import { exportBackup, importBackup } from '../core/backup.js';
 import { setTitlePart } from '../core/title.js';
+import { setFact, setFocus } from '../core/briefing.js';
 
 export const COLORS = ['#c8553d', '#3c82cf', '#3c8a4a', '#8b62d0', '#d99a1f', '#2a9d8f', '#d65b8f', '#6b7a8f'];
 const NO_SUBJECT = { id: '', name: 'Ohne Fach', color: '#a3a097' };
 const MIN_SESSION = 60 * 1000;
 const DAY = 24 * 60 * 60 * 1000;
+const FOCUS_RING = 2 * Math.PI * 90;
 
 const uid = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -55,8 +57,8 @@ const rangeFmt = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'nume
 export default {
   id: 'study',
   title: 'Lernzeit',
-  size: 'wide',
-  dock: { icon: '⏱', label: 'Lernzeit' },
+  size: 'l',
+  dock: { icon: 'study', label: 'Lernzeit' },
 
   async render(container, ctx) {
     let subjects = await ctx.store.load('subjects', {});
@@ -118,6 +120,15 @@ export default {
     const entriesBox = h('details', { class: 'study-details' },
       h('summary', {}, 'Einträge dieser Woche'),
       entries);
+    // Großer Ring im Fokus-Modus (freier Timer und Countdown-Timer; Pomodoro hat einen eigenen)
+    const focusRing = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    focusRing.setAttribute('viewBox', '0 0 200 200');
+    focusRing.setAttribute('class', 'focus-ring');
+    focusRing.setAttribute('aria-hidden', 'true');
+    focusRing.innerHTML = `<circle class="focus-ring-track" cx="100" cy="100" r="90"/><circle class="focus-ring-bar" cx="100" cy="100" r="90" stroke-dasharray="${FOCUS_RING}" stroke-dashoffset="${FOCUS_RING}" transform="rotate(-90 100 100)"/>`;
+    const focusTime = h('span', { class: 'focus-time' });
+    const focusLabel = h('span', { class: 'focus-label muted' });
+    const focusDial = h('div', { class: 'focus-dial', hidden: true }, focusRing, h('div', { class: 'focus-dial-text' }, focusTime, focusLabel));
     const subjectsPanel = h('div', { class: 'study-panel', hidden: true });
     const dataPanel = h('div', { class: 'study-panel', hidden: true });
 
@@ -127,6 +138,7 @@ export default {
       modeSwitch,
       soundHint,
       muteHint,
+      focusDial,
       h('div', { class: 'study-timer' },
         h('div', { class: 'study-timer-main' }, subjectSelect, timeEl),
         freeButtons),
@@ -199,6 +211,34 @@ export default {
       pauseButton.textContent = paused ? 'Weiter' : 'Pause';
       container.classList.toggle('is-running', Boolean(running) && !paused);
       container.classList.toggle('is-paused', paused);
+      drawFocus(pomo, timer, paused);
+    };
+
+    // Fokus (Ruhe-Modus aus): Pomodoro läuft, ein Timer läuft oder der freie Timer läuft.
+    const drawFocus = (pomo, timer, paused) => {
+      const pomoRunning = Boolean(pomo && pomo.ms !== Infinity && pomo.round);
+      const timerRunning = timers.hasRunning() && timer?.time;
+      const freeRunning = Boolean(running && !paused);
+      if (!pomoRunning && !timerRunning && !freeRunning) {
+        setFocus(null);
+        focusDial.hidden = true;
+        return;
+      }
+      const subject = subjectSelect.value ? subjectOf(subjectSelect.value).name : null;
+      const detail = pomoRunning ? `${pomo.phase === 'Fokus' ? '' : `${pomo.phase}, `}Runde ${pomo.round} von ${pomo.rounds}`
+        : timerRunning && !freeRunning ? `Timer „${timer.name}“` : null;
+      setFocus({ subject: pomoRunning || freeRunning ? subject : null, detail });
+
+      // Pomodoro zeigt in seiner Ansicht den eigenen Ring; sonst Timer vor freiem Timer vor Pomodoro.
+      const source = mode === 'pomodoro' && pomoRunning ? null
+        : timerRunning && (mode === 'timer' || !freeRunning) ? { time: timer.time, progress: timer.progress, label: timer.name }
+        : freeRunning ? { time: clock(elapsed(running)), progress: (elapsed(running) % 3600000) / 3600000, label: subject ?? 'Freier Timer' }
+        : { time: pomo.time, progress: pomo.progress, label: pomo.phase };
+      focusDial.hidden = !source;
+      if (!source) return;
+      focusRing.querySelector('.focus-ring-bar').setAttribute('stroke-dashoffset', String(FOCUS_RING * (1 - Math.min(1, Math.max(0, source.progress)))));
+      focusTime.textContent = source.time;
+      focusLabel.textContent = source.label;
     };
 
     const drawSubjectSelect = () => {
@@ -251,6 +291,7 @@ export default {
       const today = dayStart(Date.now());
       const sum = (from, to) => list.filter(s => s.start >= from && s.start < to).reduce((t, s) => t + net(s), 0);
 
+      setFact('study', { today: sum(today, today + DAY), week: sum(weekStart(today), addDays(weekStart(today), 7)) });
       totals.replaceChildren(...[
         h('span', {}, 'Heute ', h('strong', {}, duration(sum(today, today + DAY)))),
         h('span', {}, 'Diese Woche ', h('strong', {}, duration(sum(weekStart(today), addDays(weekStart(today), 7))))),

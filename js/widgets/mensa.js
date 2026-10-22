@@ -2,6 +2,7 @@
 // Die API erlaubt Abrufe direkt aus dem Browser (CORS: Access-Control-Allow-Origin: *).
 import { h } from '../core/dom.js';
 import { fetchJSON } from '../core/http.js';
+import { setFact } from '../core/briefing.js';
 
 const API = 'https://openmensa.org/api/v2';
 
@@ -141,7 +142,8 @@ function drawMeals(list, meals) {
 export default {
   id: 'mensa',
   title: 'Mensa',
-  dock: { icon: '🍽', label: 'Mensa' },
+  size: 'm',
+  dock: { icon: 'mensa', label: 'Mensa' },
   defaultOpen: true,
   refreshInterval: 30 * 60 * 1000,
 
@@ -189,9 +191,19 @@ export default {
       // Beim schnellen Blättern nur die Antwort zum zuletzt gewählten Tag anzeigen.
       if (request !== state.request) return;
       drawMeals(list, data);
+      publishToday(date, data);
       ctx.setStatus(problem
         ? `${problem} Stand ${timeFmt.format(fetchedAt)} Uhr.`
         : `Aktualisiert ${timeFmt.format(fetchedAt)} Uhr · OpenMensa`);
+    };
+
+    // Gericht von heute fürs Briefing (vegetarisch bevorzugt)
+    const publishToday = (date, meals) => {
+      if (date !== isoDate(new Date())) return;
+      const mains = meals.filter(m => m.prices.students != null);
+      const meal = mains.find(m => dietOf(m)) ?? mains[0] ?? meals[0];
+      const status = openingStatus(state.canteen);
+      setFact('mensa', meal ? { dish: meal.name.split(/\s*\|\s*/)[0], until: status?.open ? status.text.replace(/^Geöffnet/, 'geöffnet') : null } : null);
     };
 
     const step = async delta => {
@@ -221,6 +233,8 @@ export default {
       const current = state.openDays[state.index];
       state.openDays = days.filter(d => !d.closed && d.date >= today).map(d => d.date);
 
+      ctx.setEmpty(!state.openDays.length);
+      if (!state.openDays.includes(today)) setFact('mensa', null);
       if (!state.openDays.length) {
         state.request++;
         state.index = -1;

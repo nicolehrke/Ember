@@ -189,7 +189,12 @@ export function createTimers({ getSubjectId, saveSession, onChange }) {
   // Nächster laufender Timer für Kachelkopf und Tab-Titel, null wenn keiner läuft.
   const next = () => {
     const soonest = timers.filter(isRunning).sort((a, b) => a.end - b.end)[0];
-    if (soonest) return { ms: soonest.end - Date.now(), badge: `⏱ ${countdown(rest(soonest))}`, title: `⏱ ${countdown(rest(soonest))} ${label(soonest)}`, name: label(soonest) };
+    if (soonest) {
+      return {
+        ms: soonest.end - Date.now(), badge: `⏱ ${countdown(rest(soonest))}`, title: `⏱ ${countdown(rest(soonest))} ${label(soonest)}`, name: label(soonest),
+        time: countdown(rest(soonest)), progress: 1 - rest(soonest) / soonest.duration,
+      };
+    }
     const missed = timers.find(t => t.missed && !isRinging(`timer-${t.id}`));
     return missed ? { ms: Infinity, badge: '⚠︎ Timer abgelaufen', title: `⚠︎ ${label(missed)} abgelaufen um ${hhmm(missed.doneAt)}` } : null;
   };

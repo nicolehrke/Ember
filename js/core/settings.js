@@ -4,6 +4,7 @@ import { popover } from './popover.js';
 import { connect, disconnect, syncNow, onStatus, getConfig } from './sync.js';
 import { spotifySettings } from '../spotify/settings-section.js';
 import { alertSettings } from './alert-settings.js';
+import { icon } from './icons.js';
 
 const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Ember-Sync';
 const timeFmt = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -18,7 +19,7 @@ const STATE_TEXT = {
 
 export function initSettings(root) {
   const button = h('button', { class: 'icon-btn settings-btn', type: 'button', title: 'Einstellungen', 'aria-label': 'Einstellungen', 'aria-controls': 'settings-panel' },
-    '⚙︎', h('span', { class: 'sync-dot', 'aria-hidden': 'true' }));
+    icon('gear'), h('span', { class: 'sync-dot', 'aria-hidden': 'true' }));
   const body = h('div', { class: 'settings-body' });
   const panel = h('div', { class: 'popover', id: 'settings-panel', hidden: true },
     h('h2', { class: 'card-title' }, 'Sync zwischen Geräten'),

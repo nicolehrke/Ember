@@ -71,7 +71,8 @@ export function stats(habit, doneSet, now = today()) {
 export default {
   id: 'habits',
   title: 'Gewohnheiten',
-  dock: { icon: '✅', label: 'Gewohnheiten' },
+  size: 's',
+  dock: { icon: 'habits', label: 'Gewohnheiten' },
   defaultOpen: true,
 
   async render(container, ctx) {
@@ -118,6 +119,7 @@ export default {
       next.disabled = weekOffset >= 0;
       const habits = active();
       weekbar.hidden = !habits.length;
+      ctx.setEmpty(!habits.length && manage.hidden);
 
       if (!habits.length) {
         rows.replaceChildren(h('li', { class: 'habit-empty muted' },

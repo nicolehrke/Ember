@@ -213,7 +213,12 @@ export function createPomodoro({ ctx, getSubjectId, saveFocus, onChange }) {
     const p = PHASES[state.phase];
     const rest = countdown(remaining(state));
     const label = state.pausedAt ? `${p.label} (pausiert)` : p.label;
-    return { badge: `${p.badge} ${rest} ${label}`, title: `${p.icon} ${rest} ${label}`, ms: state.pausedAt ? Infinity : remaining(state) };
+    return {
+      badge: `${p.badge} ${rest} ${label}`, title: `${p.icon} ${rest} ${label}`, ms: state.pausedAt ? Infinity : remaining(state),
+      // für Fokus-Satz und -Ring
+      phase: p.label, round: state.round, rounds: settings.rounds,
+      time: rest, progress: 1 - remaining(state) / (state.end - state.start - (state.pausedTotal ?? 0) || 1),
+    };
   };
 
   // Laufende Fokusphase für die Live-Summen der Übersicht.

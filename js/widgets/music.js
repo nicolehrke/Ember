@@ -21,7 +21,8 @@ const logo = () => h('a', { class: 'spotify-logo', href: 'https://open.spotify.c
 export default {
   id: 'music',
   title: 'Musik',
-  dock: { icon: '🎵', label: 'Musik' },
+  size: 's',
+  dock: { icon: 'music', label: 'Musik' },
 
   async render(container, ctx) {
     let settings = await load(SETTINGS_KEY, {});

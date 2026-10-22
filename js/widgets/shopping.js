@@ -7,6 +7,7 @@
 // zusammen, pro Artikel gewinnt die jüngste Änderung. Gelöschte Artikel bleiben als
 // Grabstein (status 'deleted') stehen und werden nach 30 Tagen aufgeräumt.
 import { h, confirmButton } from '../core/dom.js';
+import { setFact } from '../core/briefing.js';
 
 const TOMBSTONE_DAYS = 30;
 const UNDO_MS = 6000;
@@ -30,7 +31,8 @@ export function pruneTombstones(items, now = Date.now()) {
 export default {
   id: 'shopping',
   title: 'Einkaufsliste',
-  dock: { icon: '🛒', label: 'Einkaufsliste' },
+  size: 's',
+  dock: { icon: 'shopping', label: 'Einkauf' },
 
   async render(container, ctx) {
     let items = await ctx.store.load('items', {});
@@ -205,6 +207,8 @@ export default {
 
       openList.replaceChildren(...open.map(itemRow));
       empty.hidden = open.length > 0;
+      ctx.setEmpty(!open.length && !finished.length);
+      setFact('shopping', open.length ? { open: open.length } : null);
 
       done.hidden = !finished.length;
       const wasOpen = done.open;

@@ -12,6 +12,7 @@
 // due ist ein reines Kalenderdatum (Europe/Berlin) – direkt nutzbar für einen späteren Kalender.
 import { h, confirmButton } from '../core/dom.js';
 import { pruneTombstones } from './shopping.js';
+import { setFact } from '../core/briefing.js';
 
 const UNDO_MS = 6000;
 const TODAY_HINT = 5; // ab mehr Aufgaben für heute ein sanfter Hinweis – keine Sperre
@@ -120,8 +121,8 @@ const valid = t => t && typeof t === 'object' && typeof t.id === 'string' && typ
 export default {
   id: 'todos',
   title: 'Aufgaben',
-  size: 'wide',
-  dock: { icon: '📋', label: 'Aufgaben' },
+  size: 'm',
+  dock: { icon: 'todos', label: 'Aufgaben' },
 
   async render(container, ctx) {
     let items = await ctx.store.load('items', {});
@@ -339,6 +340,7 @@ export default {
     function drawBadge() {
       const due = byStatus('open').filter(t => t.due && t.due <= today);
       const overdue = due.filter(t => t.due < today).length;
+      setFact('todos', due.length ? { due: due.length, overdue } : null);
       if (!settings.counter || !due.length) return ctx.setBadge(null);
       const title = [overdue && `${overdue} überfällig`, due.length - overdue && `${due.length - overdue} heute fällig`].filter(Boolean).join(', ');
       return ctx.setBadge(String(due.length), { highlight: overdue > 0, title: `Aufgaben: ${title}` });
@@ -375,6 +377,7 @@ export default {
 
       openList.replaceChildren(...open.map(row));
       empty.hidden = all.length > 0;
+      ctx.setEmpty(!all.length && !finished.length);
 
       done.hidden = !finished.length;
       const wasOpen = done.open;

@@ -1,0 +1,34 @@
+/* ---------- Stil „Glut“ ----------
+   Dunkler, warmer Grund mit weichem Atem-Glühen oben links; Kacheln als dunkle Karten.
+   Die dunklen Werte sind die Grundwerte in css/style.css, hier steht nur, was davon abweicht.
+   Phasen: Funke (5–10), Flamme (10–15), Glut (15–19), Dämmerung (19–23), Asche (23–5). */
+
+/* Hell: warmes Papier, Akzent mit dunklem Braun abgedunkelt (Kontrast ≥ 4.5:1), Glühen halbiert */
+:root[data-theme="light"] {
+  --bg: #F3EDE5;
+  --surface: rgba(251, 247, 241, 0.86);
+  --surface-solid: #FBF7F1;
+  --surface-2: #EEE5DA;
+  --border: #DDD0C2;
+  --text: #2A1B10;
+  --muted: #6A5B4E;
+  --dim: #7A6A5D;
+  --accent: color-mix(in srgb, var(--ui) 45%, #2A1308);
+  --on: #FFFFFF;
+  --gm: 0.5;
+}
+
+/* Vor dem ersten Skriptlauf (noch kein data-theme) dem System folgen */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #F3EDE5;
+    --surface: rgba(251, 247, 241, 0.86);
+    --surface-2: #EEE5DA;
+    --border: #DDD0C2;
+    --text: #2A1B10;
+    --muted: #6A5B4E;
+    --dim: #7A6A5D;
+    --gm: 0.5;
+    color-scheme: light;
+  }
+}

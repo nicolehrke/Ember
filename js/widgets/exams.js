@@ -12,6 +12,7 @@
 import { h, confirmButton } from '../core/dom.js';
 import { load, save, subscribe } from '../core/storage.js';
 import { COLORS } from './study.js';
+import { setFact } from '../core/briefing.js';
 
 const SUBJECTS_KEY = 'study.subjects';
 const SESSIONS_KEY = 'study.sessions';
@@ -119,7 +120,8 @@ const termLine = term => [dateFmt.format(wall(term.date)), term.time && `${term.
 export default {
   id: 'exams',
   title: 'Klausuren',
-  dock: { icon: '🎓', label: 'Klausuren' },
+  size: 'm',
+  dock: { icon: 'exams', label: 'Klausuren' },
 
   async render(container, ctx) {
     let exams = await ctx.store.load('list', {});
@@ -156,6 +158,7 @@ export default {
     // Dock-Button und Zusammenfassung oben in der Ansicht
     function updateDock() {
       const next = nextExam(exams);
+      setFact('exams', next ? { name: subjectOf(next.exam.subjectId).name, text: next.countdown.text } : null);
       if (!next) {
         summary.textContent = 'Keine anstehende Klausur.';
         ctx.setBadge('', { title: 'Klausuren – keine anstehende Klausur' });
@@ -346,6 +349,7 @@ export default {
       const upcoming = all.filter(e => !statusOf(e).past);
       const past = all.filter(e => statusOf(e).past).reverse();
 
+      ctx.setEmpty(!all.length && editing !== 'new');
       if (!all.length) {
         listEl.replaceChildren(...(editing === 'new' ? [] : [h('p', { class: 'exam-empty muted' },
           'Noch keine Klausur angelegt. ',

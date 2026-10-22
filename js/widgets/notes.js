@@ -19,7 +19,8 @@ const timeFmt = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-d
 export default {
   id: 'notes',
   title: 'Notizen',
-  dock: { icon: '📝', label: 'Notizen' },
+  size: 's',
+  dock: { icon: 'notes', label: 'Notizen' },
 
   async render(container, ctx) {
     let notes = await ctx.store.load('list', {});
