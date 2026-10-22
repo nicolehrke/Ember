@@ -28,6 +28,7 @@ js/core/popover.js      Aufklapp-Panels (Wetter, Stundenplan, Einstellungen)
 js/core/http.js         fetchJSON()/fetchText() mit Timeout und verständlichen Fehlern
 js/core/ical.js         Schlanker iCal-Parser inkl. Wiederholungen und Zeitzonen
 js/core/dom.js          Kleine DOM-Helfer (h(), esc(), confirmButton())
+js/core/backup.js       Gemeinsamer Export/Import aller Sammlungen
 js/widgets/index.js     Zentrale Widget-Liste
 js/widgets/*.js         Ein Modul pro Widget
 examples/               Beispiel-Stundenplan (.ics) mit erfundenen Terminen
@@ -99,7 +100,15 @@ Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleib
 - Fächer anlegen, umbenennen, Farbe wechseln und löschen über „Fächer“.
 - Übersicht über heute und die Woche, Balkendiagramm Mo–So nach Fach, Wochen mit ‹ › durchblättern.
 - Unter „Einträge dieser Woche“ Einträge bearbeiten, löschen oder nachtragen.
-- Über „Daten“ als JSON exportieren und importieren. Ein Import führt zusammen, statt zu überschreiben, und erzeugt keine Duplikate.
+- Über „Daten“ als JSON exportieren und importieren (zentral über `js/core/backup.js`, enthält auch die Gewohnheiten). Ein Import führt zusammen, statt zu überschreiben, und erzeugt keine Duplikate. Ältere Lernzeit-Exporte lassen sich weiter importieren.
+
+## Gewohnheiten
+
+- Über „Bearbeiten“ Gewohnheiten anlegen (Name, optional Emoji), umbenennen, Farbe wechseln, umsortieren (↑/↓), archivieren und löschen. Archivierte lassen sich wiederherstellen.
+- Großer Knopf pro Gewohnheit: heute erledigt; erneuter Klick macht es rückgängig. Die Punkte Mo–So tragen Tage rückwirkend nach (nicht in der Zukunft), ‹ › blättert zu früheren Wochen.
+- **Ohne Ziel:** Serie und Rekord in Tagen sowie „15× in den letzten 23 Tagen“ (Zeitraum seit dem Anlegen, höchstens 30 Tage).
+- **Mit Wochenziel** (1–7× pro Woche): „2/3 diese Woche“ bzw. „Ziel erreicht“; Serie und Rekord zählen Wochen mit erreichtem Ziel.
+- Daten: `habits.list` (Gewohnheiten) und `habits.days` mit einem Eintrag pro Gewohnheit und Tag (`<id>|JJJJ-MM-TT`, Tagesgrenze Europe/Berlin) inklusive Zeitstempel. Streaks werden immer daraus berechnet. Weil jeder Tag ein eigener Eintrag ist, führt der Gist-Sync Abhaken auf mehreren Geräten tageweise zusammen; auch ein Rückgängigmachen (`done: false`) kommt auf allen Geräten an.
 
 ## Stundenplan (RWTHonline)
 

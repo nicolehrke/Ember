@@ -5,11 +5,13 @@ import timetable from './timetable.js';
 import weather from './weather.js';
 import mensa from './mensa.js';
 import study from './study.js';
+import habits from './habits.js';
 
 export default [
   clock,
   timetable,
   weather,
   mensa,
+  habits,
   study,
 ];

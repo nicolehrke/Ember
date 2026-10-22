@@ -11,6 +11,7 @@
 // das Löschen an andere Geräte weitergeben kann.
 import { h, confirmButton } from '../core/dom.js';
 import { createPomodoro } from './pomodoro.js';
+import { exportBackup, importBackup } from '../core/backup.js';
 
 const COLORS = ['#c8553d', '#3c82cf', '#3c8a4a', '#8b62d0', '#d99a1f', '#2a9d8f', '#d65b8f', '#6b7a8f'];
 const NO_SUBJECT = { id: '', name: 'Ohne Fach', color: '#a3a097' };
@@ -47,15 +48,6 @@ const BASE_TITLE = document.title;
 const weekdayFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'short' });
 const dayFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'numeric' });
 const rangeFmt = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'numeric' });
-
-// Einträge zweier Sammlungen zusammenführen (neuere Änderung gewinnt).
-function mergeRecords(a = {}, b = {}) {
-  const result = { ...a };
-  for (const [id, r] of Object.entries(b)) {
-    if (r && typeof r.updatedAt === 'number' && (!result[id] || r.updatedAt > result[id].updatedAt)) result[id] = r;
-  }
-  return result;
-}
 
 export default {
   id: 'study',
@@ -133,7 +125,7 @@ export default {
       panel.hidden = !open;
     };
     ctx.addAction('Fächer', () => { drawSubjects(); togglePanel(subjectsPanel); }, 'Fächer verwalten');
-    ctx.addAction('Daten', () => togglePanel(dataPanel), 'Export und Import');
+    ctx.addAction('Daten', () => togglePanel(dataPanel), 'Export und Import (Lernzeit und Gewohnheiten)');
 
     // ---------- Speichern ----------
     const putSession = async session => {
@@ -384,17 +376,18 @@ export default {
         add);
     };
 
-    // ---------- Export / Import ----------
+    // ---------- Export / Import (zentral über core/backup.js) ----------
     const importInput = h('input', { type: 'file', accept: 'application/json,.json', hidden: true });
     const dataInfo = h('p', { class: 'muted small' });
     dataPanel.append(
+      h('p', { class: 'muted small' }, 'Sichert Lernzeit (Fächer, Einträge) und Gewohnheiten in einer JSON-Datei. Ein Import führt zusammen, statt zu überschreiben.'),
       h('div', { class: 'study-form-row' },
         h('button', {
           class: 'chip', type: 'button',
-          onclick: () => {
-            const data = { app: 'dashboard', type: 'lernzeit', version: 1, exportedAt: new Date().toISOString(), subjects, sessions };
+          onclick: async () => {
+            const data = await exportBackup();
             const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-            const a = h('a', { href: url, download: `lernzeit-${isoDate(Date.now())}.json` });
+            const a = h('a', { href: url, download: `dashboard-backup-${isoDate(Date.now())}.json` });
             document.body.append(a);
             a.click();
             a.remove();
@@ -411,17 +404,8 @@ export default {
       importInput.value = '';
       if (!file) return;
       try {
-        const data = JSON.parse(await file.text());
-        if (data?.type !== 'lernzeit' || typeof data.sessions !== 'object' || typeof data.subjects !== 'object') {
-          throw new Error('Die Datei ist kein Lernzeit-Export.');
-        }
-        const before = Object.keys(sessions).length;
-        subjects = mergeRecords(subjects, data.subjects);
-        sessions = mergeRecords(sessions, data.sessions);
-        await ctx.store.save('subjects', subjects);
-        await ctx.store.save('sessions', sessions);
-        const added = Object.keys(sessions).length - before;
-        dataInfo.textContent = `Import fertig: ${added === 1 ? '1 neuer Eintrag' : `${added} neue Einträge`}, vorhandene wurden abgeglichen.`;
+        const added = await importBackup(JSON.parse(await file.text()));
+        dataInfo.textContent = `Import fertig: ${added.length ? `neu sind ${added.join(', ')}` : 'keine neuen Einträge'}; vorhandene wurden abgeglichen.`;
         drawAll();
       } catch (err) {
         dataInfo.textContent = err instanceof SyntaxError ? 'Die Datei ist kein gültiges JSON.' : err.message;
