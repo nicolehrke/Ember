@@ -15,6 +15,7 @@ export const COLLECTIONS = [
   { key: 'shopping.items', one: 'Einkaufsartikel', many: 'Einkaufsartikel' },
   { key: 'shopping.history', one: 'Einkaufsvorschlag', many: 'Einkaufsvorschläge' },
   { key: 'todos.items', one: 'Aufgabe', many: 'Aufgaben' },
+  { key: 'licht.buttons', one: 'Licht-Button', many: 'Licht-Buttons' },
 ];
 
 // Einträge zweier Sammlungen zusammenführen (neuere Änderung gewinnt).

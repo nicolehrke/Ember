@@ -157,7 +157,7 @@ export default {
       panel.hidden = !open;
     };
     ctx.addAction('Fächer', () => { drawSubjects(); togglePanel(subjectsPanel); }, 'Fächer verwalten');
-    ctx.addAction('Daten', () => togglePanel(dataPanel), 'Export und Import (Lernzeit, Gewohnheiten, Klausuren, Notizen, Einkaufsliste, Aufgaben)');
+    ctx.addAction('Daten', () => togglePanel(dataPanel), 'Export und Import (Lernzeit, Gewohnheiten, Klausuren, Notizen, Einkaufsliste, Aufgaben, Licht)');
 
     // ---------- Speichern ----------
     const putSession = async session => {
@@ -458,7 +458,7 @@ export default {
     const importInput = h('input', { type: 'file', accept: 'application/json,.json', hidden: true });
     const dataInfo = h('p', { class: 'muted small' });
     dataPanel.append(
-      h('p', { class: 'muted small' }, 'Sichert Lernzeit (Fächer, Einträge), Gewohnheiten, Klausuren, Notizen, Einkaufsliste und Aufgaben in einer JSON-Datei. Ein Import führt zusammen, statt zu überschreiben.'),
+      h('p', { class: 'muted small' }, 'Sichert Lernzeit (Fächer, Einträge), Gewohnheiten, Klausuren, Notizen, Einkaufsliste, Aufgaben und Licht-Buttons in einer JSON-Datei. Ein Import führt zusammen, statt zu überschreiben.'),
       h('div', { class: 'study-form-row' },
         h('button', {
           class: 'chip', type: 'button',

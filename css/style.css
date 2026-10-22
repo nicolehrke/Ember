@@ -1827,6 +1827,21 @@ a.music-title:hover { text-decoration: underline; }
 .light-help { margin-top: 10px; font-size: 0.9rem; }
 .light-help summary { cursor: pointer; color: var(--muted); min-height: 32px; display: flex; align-items: center; }
 .light-help ol { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 4px; }
+.light-gear .ln-ic { width: 18px; height: 18px; }
+.light-manage { margin-bottom: 4px; }
+.light-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.light-row { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.light-row-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.light-field { display: grid; gap: 2px; min-width: 0; }
+.light-field input { background: var(--surface-solid); }
+.light-icons { display: flex; flex-wrap: wrap; gap: 4px; }
+.light-icon-pick { border-color: transparent; background: none; }
+.light-icon-pick[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.light-icon-pick .ln-ic { width: 18px; height: 18px; }
+.light-key { width: auto; flex: 0 1 150px; }
+.light-test { display: grid; gap: 6px; justify-items: start; }
+.light-link { width: 100%; font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; background: var(--surface-solid); }
+@media (pointer: coarse) { .light-icon-pick { width: 40px; height: 40px; } }
 /* Größen: S = die ersten zwei, M = bis zu vier in einer Reihe, L = alle als Raster mit Symbol über Label */
 .card[data-widget="licht"][data-size="s"] .light-btn:nth-child(n + 3),
 .card[data-widget="licht"][data-size="m"] .light-btn:nth-child(n + 5) { display: none; }
