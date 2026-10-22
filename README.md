@@ -37,7 +37,7 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Klausuren, Gewohnheiten, Mensa und Notizen sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Symbol-Buttons unter der Uhr (⏱ Lernzeit, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa, 📝 Notizen; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
+Lernzeit, Klausuren, Gewohnheiten, Mensa, Einkaufsliste und Notizen sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Symbol-Buttons unter der Uhr (⏱ Lernzeit, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa, 🛒 Einkaufsliste, 📝 Notizen; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
 
 Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben). Gewohnheiten und Mensa zeigen nur ihr Symbol.
 
@@ -123,6 +123,15 @@ Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer,
 - **Ohne Ziel:** Serie und Rekord in Tagen sowie „15× in den letzten 23 Tagen“ (Zeitraum seit dem Anlegen, höchstens 30 Tage).
 - **Mit Wochenziel** (1–7× pro Woche): „2/3 diese Woche“ bzw. „Ziel erreicht“; Serie und Rekord zählen Wochen mit erreichtem Ziel.
 - Daten: `habits.list` (Gewohnheiten) und `habits.days` mit einem Eintrag pro Gewohnheit und Tag (`<id>|JJJJ-MM-TT`, Tagesgrenze Europe/Berlin) inklusive Zeitstempel. Streaks werden immer daraus berechnet. Weil jeder Tag ein eigener Eintrag ist, führt der Gist-Sync Abhaken auf mehreren Geräten tageweise zusammen; auch ein Rückgängigmachen (`done: false`) kommt auf allen Geräten an.
+
+## Einkaufsliste
+
+- Artikel eintippen und Enter: kommt auf die Liste, der Fokus bleibt im Feld für den nächsten. Beim Tippen schlägt das Feld bisherige Artikel vor. Steht ein Artikel schon auf der Liste, wird er kurz hervorgehoben statt doppelt angelegt; ein bereits erledigter wird zurückgeholt.
+- Antippen hakt ab; erledigte Artikel landen im eingeklappten Bereich „Erledigt“ und kommen per Antippen zurück. ✎ bearbeitet Name und Menge (Freitext, z. B. „2 Packungen“), × löscht ohne Rückfrage, aber mit „Rückgängig“ für einige Sekunden. „Erledigte entfernen“ fragt nach.
+- „Häufig gekauft“ zeigt Artikel, die mindestens zweimal auf der Liste waren und gerade nicht draufstehen – ein Tipp setzt sie wieder auf die Liste. Über „Anpassen“ lassen sich Vorschläge anheften (📌, immer oben) oder ausblenden.
+- **Handy-Ansicht:** `…/?nur=einkauf` lädt nur die Einkaufsliste in voller Breite, ohne Kopfbereich und Dock (Link „Nur-Einkaufsliste-Ansicht“ unten in der Kachel). Auf iPhone/iPad in Safari öffnen → Teilen → „Zum Home-Bildschirm“ ergibt ein eigenes Symbol. Alle Bedienflächen sind mindestens 44 px groß, Eingabefelder nutzen 16 px Schrift (kein Zoom beim Antippen).
+- **Daten und Sync:** `shopping.items` mit einem Eintrag pro Artikel (ID, Name, Menge, Status offen/erledigt/gelöscht, Zeitstempel) und `shopping.history` mit einem Eintrag pro Artikelname (Häufigkeit, angeheftet/ausgeblendet). Der Gist-Sync führt beides Eintrag für Eintrag zusammen, pro Artikel gewinnt die jüngste Änderung. Gelöschte Artikel bleiben als Grabstein stehen, damit ein anderes Gerät sie nicht wiederherstellt, und werden nach 30 Tagen aufgeräumt. Beides ist im Export enthalten.
+- **Schlechter Empfang:** Jede Änderung wird sofort lokal gespeichert; der Sync zieht sie nach, sobald wieder Netz da ist. Einschränkungen: Die Seite muss geladen sein (ohne Netz neu laden geht nicht, es gibt noch keinen Offline-Cache für die Dateien), und ein Gerät, das länger als 30 Tage gar nicht synchronisiert hat, könnte gelöschte Artikel wieder einspielen. Zwei gleichzeitige Erhöhungen der Häufigkeit eines Artikels auf zwei Geräten zählen nur einmal.
 
 ## Notizen
 

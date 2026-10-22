@@ -16,6 +16,19 @@ const slots = {
   grid: document.getElementById('grid'),
   dock: document.getElementById('dock'),
 };
-for (const widget of widgets) mountWidget(slots, widget);
+
+// Nur-Ansicht einzelner Widgets, z. B. ?nur=einkauf fürs Handy im Laden:
+// lädt nur dieses Widget, als immer sichtbare Kachel ohne Dock.
+const ONLY = { einkauf: 'shopping' };
+const only = ONLY[new URLSearchParams(location.search).get('nur')];
+if (only) {
+  document.documentElement.classList.add('only-view');
+  document.title = 'Einkaufsliste';
+  slots.grid.after(Object.assign(document.createElement('a'), { className: 'only-back', href: './', textContent: 'Zum Dashboard' }));
+}
+for (const widget of widgets) {
+  if (only && widget.id !== only) continue;
+  mountWidget(slots, only ? { ...widget, dock: undefined } : widget);
+}
 
 initSync();

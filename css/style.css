@@ -1112,3 +1112,117 @@ input[type="number"] {
 .note-rename input { width: 12em; }
 .mensa-link { margin-top: 10px; }
 .mensa-link[hidden] { display: none; }
+
+/* ---------- Widget: Einkaufsliste ---------- */
+.shop-add { display: flex; gap: 8px; scroll-margin: 80px 0 120px; }
+.shop-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* kein Zoom beim Antippen auf iPhone/iPad */
+}
+.shop-add-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.shop-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.shop-item { display: flex; align-items: center; gap: 2px; border-radius: 12px; transition: background 0.3s; }
+.shop-item + .shop-item { border-top: 1px solid var(--border); }
+.shop-item.is-flash { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.shop-toggle {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+}
+.shop-check { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--muted); }
+.shop-name { overflow-wrap: anywhere; }
+.shop-qty { font-size: 0.88rem; white-space: nowrap; }
+.shop-item.is-done .shop-name { text-decoration: line-through; color: var(--muted); }
+.shop-item.is-done .shop-check { border-color: var(--accent); background: var(--accent) radial-gradient(circle, #fff 0 3px, transparent 4px); }
+.shop-icon-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.shop-icon-btn:hover, .shop-icon-btn:focus-visible { color: var(--text); background: var(--surface-2); }
+.shop-icon-btn[aria-pressed="true"] { color: var(--accent); }
+.shop-empty { margin: 12px 0 0; }
+.shop-empty[hidden], .shop-done[hidden], .shop-toast[hidden] { display: none; }
+.shop-edit { display: grid; gap: 8px; padding: 10px 0; }
+.shop-section-title { margin: 0; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.shop-frequent:not(:empty) { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.shop-frequent-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.shop-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.shop-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.shop-chip-manage { display: inline-flex; align-items: center; gap: 2px; padding-left: 12px; border: 1px solid var(--border); border-radius: 999px; }
+.shop-chip-manage.is-hidden .shop-chip-name { color: var(--muted); text-decoration: line-through; }
+.shop-chip-name { font-size: 0.92rem; margin-right: 2px; }
+.shop-hint { margin: 0; font-size: 0.85rem; }
+.shop-done { margin-top: 14px; }
+.shop-done summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--muted); }
+.shop-clear { margin-top: 8px; }
+.shop-toast {
+  position: sticky;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 12px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.92rem;
+}
+.shop-toast .chip { min-height: 36px; background: var(--bg); color: var(--text); border-color: transparent; }
+.shop-only-link { display: inline-block; margin-top: 14px; font-size: 0.82rem; }
+
+/* Nur-Ansicht (?nur=einkauf) */
+.only-view .top, .only-view .dock, .only-view .shop-only-link { display: none; }
+.only-view .grid { grid-template-columns: minmax(0, 640px); justify-content: center; }
+.only-view .card { grid-column: auto; }
+.only-back { display: block; max-width: 640px; margin: 16px auto 0; font-size: 0.85rem; color: var(--muted); }

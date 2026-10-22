@@ -8,6 +8,7 @@ import study from './study.js';
 import habits from './habits.js';
 import exams from './exams.js';
 import notes from './notes.js';
+import shopping from './shopping.js';
 
 export default [
   clock,
@@ -18,5 +19,6 @@ export default [
   exams,
   habits,
   mensa,
+  shopping,
   notes,
 ];
