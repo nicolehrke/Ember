@@ -1,7 +1,7 @@
 // Widget „Klausuren“: Countdown bis zu den nächsten Klausuren mit der bisher
 // gelernten Zeit pro Fach (aus dem Lernzeit-Widget). Sitzt als Chip 🎓 in der
 // Kopfleiste und öffnet sich als Seitenleiste; der Chip kann die Tage bis zur
-// nächsten Klausur zeigen (Einstellung pro Gerät in ctx.cache 'showDays').
+// nächsten Klausur zeigen (Einstellung 'showDays', wird synchronisiert).
 //
 // Datenmodell (über ctx.store, wird synchronisiert):
 //   list: { [id]: { id, subjectId, date: 'YYYY-MM-DD', time: 'HH:MM' | '', location, note,
@@ -129,7 +129,16 @@ export default {
     let editing = null; // id der bearbeiteten Klausur oder 'new'
     let pastOpen = false; // Bereich „Vergangen“ bleibt beim Neuzeichnen auf/zu
 
-    let showDays = await ctx.cache.load('showDays', true);
+    // Früher pro Gerät gespeichert – eine vorhandene Wahl einmalig in den Sync übernehmen.
+    let showDays = await ctx.store.load('showDays', null);
+    if (showDays === null) {
+      const local = await ctx.cache.load('showDays', null);
+      showDays = local ?? true;
+      if (local !== null) {
+        await ctx.store.save('showDays', local);
+        await ctx.cache.remove('showDays');
+      }
+    }
 
     const listEl = h('div', { class: 'exam-list' });
     const formSlot = h('div', { class: 'exam-form-slot' });
@@ -138,11 +147,11 @@ export default {
     const showDaysInput = h('input', { type: 'checkbox', checked: showDays });
     showDaysInput.addEventListener('change', async () => {
       showDays = showDaysInput.checked;
-      await ctx.cache.save('showDays', showDays);
+      await ctx.store.save('showDays', showDays);
       updateChip();
     });
     container.append(summary,
-      h('label', { class: 'pomo-check exam-setting' }, showDaysInput, 'Tage bis zur nächsten Klausur im Chip anzeigen (dieses Gerät)'),
+      h('label', { class: 'pomo-check exam-setting' }, showDaysInput, 'Tage bis zur nächsten Klausur im Chip anzeigen'),
       formSlot, listEl);
 
     // Chip in der Kopfleiste und Zusammenfassung oben in der Ansicht
@@ -284,32 +293,38 @@ export default {
       if (editing === exam.id) return h('li', {}, examForm(exam));
       const subject = subjectOf(exam.subjectId);
       const status = statusOf(exam);
-      const { all, active, undecided } = termsOf(exam);
+      const { all, active } = termsOf(exam);
       const { total, week } = studied(exam.subjectId);
       const choose = n => putExam({ ...exam, chosen: n });
 
       let terms;
-      if (undecided) {
-        // Beide Termine mit eigenem Countdown, darunter die Entscheidung
+      if (all.length > 1) {
+        // Zwei Termine als Auswahl: jeder Termin ist selbst antippbar (wie Radiobuttons).
+        // Ein erneuter Tipp auf den gewählten Termin hebt die Wahl wieder auf.
         terms = [
-          h('ul', { class: 'exam-terms' }, all.map(term => {
-            const c = countdownFor(term);
-            return h('li', { class: `exam-term${c.past ? ' is-past' : ''}` },
-              h('span', { class: 'exam-term-label' }, `${term.n}. Termin`),
-              h('span', { class: 'exam-term-when muted' }, termLine(term)),
-              h('span', { class: 'exam-term-countdown' }, c.past ? 'vorbei' : c.text));
-          })),
-          h('div', { class: 'exam-decide' },
-            h('span', { class: 'muted' }, 'Noch nicht entschieden'),
-            ...all.filter(term => !countdownFor(term).past).map(term =>
-              h('button', { class: 'chip', type: 'button', onclick: () => choose(term.n) }, `${term.n}. Termin schreiben`))),
+          h('div', { class: 'exam-choice', role: 'radiogroup', 'aria-label': `Termin für ${subject.name}` },
+            all.map(term => {
+              const c = countdownFor(term);
+              const selected = exam.chosen === term.n;
+              return h('button', {
+                class: `exam-option${selected ? ' is-selected' : ''}${exam.chosen && !selected ? ' is-dimmed' : ''}${c.past ? ' is-past' : ''}`,
+                type: 'button',
+                role: 'radio',
+                'aria-checked': String(selected),
+                disabled: c.past && !selected,
+                title: selected ? 'Gewählt – erneut tippen, um die Wahl aufzuheben' : `${term.n}. Termin wählen`,
+                onclick: () => choose(selected ? null : term.n),
+              },
+              h('span', { class: 'exam-radio', 'aria-hidden': 'true' }),
+              h('span', { class: 'exam-option-main' },
+                h('span', { class: 'exam-option-title' }, `${term.n}. Termin`),
+                h('span', { class: 'exam-option-when muted' }, termLine(term))),
+              h('span', { class: 'exam-option-countdown muted' }, c.past ? 'vorbei' : chipCountdown(term)));
+            })),
+          !exam.chosen && h('p', { class: 'exam-choice-hint muted' }, 'Noch offen – tippe auf den Termin, den du schreibst.'),
         ];
       } else {
-        const term = active[0];
-        terms = [h('div', { class: 'exam-meta muted' },
-          all.length > 1 && h('span', { class: 'exam-term-label' }, `${term.n}. Termin · `),
-          termLine(term),
-          all.length > 1 && h('button', { class: 'link-btn', type: 'button', title: 'Entscheidung zurücksetzen', onclick: () => choose(null) }, 'ändern'))];
+        terms = [h('div', { class: 'exam-meta muted' }, termLine(active[0]))];
       }
 
       return h('li', { class: `exam${next ? ' is-next' : ''}${status.past ? ' is-past' : ''}`, style: `--subject:${subject.color}` },
@@ -361,6 +376,7 @@ export default {
     // Änderungen anderer Geräte bzw. Widgets übernehmen (Fächer, Lernzeit)
     const isEditing = () => editing && container.contains(document.activeElement);
     ctx.store.subscribe('list', v => { exams = v ?? {}; if (!isEditing()) draw(); });
+    ctx.store.subscribe('showDays', v => { showDays = v ?? true; showDaysInput.checked = showDays; updateChip(); });
     ctx.onCleanup(subscribe(SUBJECTS_KEY, v => { subjects = v ?? {}; if (!isEditing()) draw(); }));
     ctx.onCleanup(subscribe(SESSIONS_KEY, v => { sessions = v ?? {}; if (!isEditing()) draw(); }));
     ctx.every(60 * 1000, () => { if (!isEditing()) draw(); else updateChip(); });

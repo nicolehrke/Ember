@@ -67,6 +67,15 @@ const calendarIcon = () => {
   return svg;
 };
 
+// RWTHonline stellt die Modulnummer voran („41.00030 Maschinengestaltung …“) und hängt
+// die Gruppe an („… VO, Standardgruppe“). Für die Anzeige fallen die Nummer (nur mit Punkt,
+// damit Titel wie „3D-Druck“ bleiben) und die nichtssagende „Standardgruppe“ weg;
+// Veranstaltungsart (VO, UE …) und echte Gruppen („Tutorium W3“) bleiben stehen.
+export const cleanTitle = title => title
+  .replace(/^\s*\d+(?:\.\d+)+[A-Za-z]?\s+/, '')
+  .replace(/,\s*Standardgruppe\s*$/i, '');
+const readEvents = text => parseICS(text).map(e => (e.title ? { ...e, title: cleanTitle(e.title) } : e));
+
 let panelControl;
 
 export default {
@@ -248,7 +257,7 @@ export default {
       try {
         const text = await file.text();
         if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error('Die Datei ist kein iCal-Kalender.');
-        const events = parseICS(text);
+        const events = readEvents(text);
         const data = { text, fetchedAt: Date.now(), source: 'file', name: file.name };
         if (!(await ctx.cache.save('ics', data))) throw new Error('Die Datei ist zu groß für den Gerätespeicher.');
         setupInfo.textContent = `${events.length} Einträge importiert.${state.url ? ' Hinweis: Beim nächsten Abruf über den Link wird die Datei ersetzt.' : ''}`;
@@ -279,7 +288,7 @@ export default {
         }
       }
 
-      state.events = state.data ? parseICS(state.data.text) : [];
+      state.events = state.data ? readEvents(state.data.text) : [];
       drawAll();
       if (!setup.hidden || !state.data) drawSetup();
     };

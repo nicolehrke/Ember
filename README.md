@@ -123,10 +123,10 @@ Die Lernzeit liegt in einer Seitenleiste: Der Button „Lernzeit“ oben rechts 
 
 ## Klausuren
 
-Die Klausuren sitzen als Chip „🎓“ oben in der Kopfleiste; ein Klick öffnet sie als Seitenleiste (schließen mit ×, Esc oder Klick daneben). Oben in der Ansicht steht die nächste Klausur als Text, darunter die Einstellung „Tage bis zur nächsten Klausur im Chip anzeigen“ (pro Gerät, Standard: an). Ist sie an, zeigt der Chip z. B. „🎓 107 Tage“, unter einer Woche „4 Tage 18 Std“. Als nächste Klausur zählt der früheste noch anstehende Termin über alle Fächer – bei entschiedenem Termin nur der gewählte, bei „noch nicht entschieden“ der frühere noch anstehende. In den letzten 14 Tagen davor ist der Chip farbig hervorgehoben; die Begründung steht im Tooltip und (für das iPad) oben in der Ansicht. Datumsangaben erscheinen als Tag.Monat.Jahr.
+Die Klausuren sitzen als Chip „🎓“ oben in der Kopfleiste; ein Klick öffnet sie als Seitenleiste (schließen mit ×, Esc oder Klick daneben). Oben in der Ansicht steht die nächste Klausur als Text, darunter die Einstellung „Tage bis zur nächsten Klausur im Chip anzeigen“ (gilt auf allen Geräten, wird synchronisiert; Standard: an). Ist sie an, zeigt der Chip z. B. „🎓 107 Tage“, unter einer Woche „4 Tage 18 Std“. Als nächste Klausur zählt der früheste noch anstehende Termin über alle Fächer – bei entschiedenem Termin nur der gewählte, bei „noch nicht entschieden“ der frühere noch anstehende. In den letzten 14 Tagen davor ist der Chip farbig hervorgehoben; die Begründung steht im Tooltip und (für das iPad) oben in der Ansicht. Datumsangaben erscheinen als Tag.Monat.Jahr.
 
 - Über „+ Klausur“ anlegen: Fach (aus derselben Fächerliste wie die Lernzeit; „+ Neues Fach …“ legt es dort direkt mit an), Datum, optional Uhrzeit, Ort und Notiz. Ein Datum in der Vergangenheit wird nur nach „Trotzdem speichern“ übernommen.
-- **2. Termin:** Optional lässt sich ein zweiter Termin eintragen (muss nach dem ersten liegen). Solange du dich nicht entschieden hast, zeigt die Klausur beide Termine mit eigenem Countdown und die Knöpfe „1. Termin schreiben“ / „2. Termin schreiben“; Countdown und Sortierung richten sich nach dem nächsten anstehenden Termin. Nach der Entscheidung zählt nur der gewählte Termin; „ändern“ setzt sie zurück. Ist der 1. Termin vorbei und noch nichts entschieden, bleibt die Klausur mit dem 2. Termin in der Liste.
+- **2. Termin:** Optional lässt sich ein zweiter Termin eintragen (muss nach dem ersten liegen). Beide Termine erscheinen als antippbare Zeilen (wie Radiobuttons) mit Datum, Ort und Tagen. Antippen legt fest, welchen Termin du schreibst; erneutes Antippen hebt die Wahl auf. Solange nichts gewählt ist, richten sich Countdown und Sortierung nach dem nächsten anstehenden Termin; danach zählt nur der gewählte. Vergangene Termine sind ausgegraut und nicht wählbar.
 - Liste nach Datum, die nächste Klausur hervorgehoben. Pro Klausur: Countdown („in 63 Tagen“, unter einer Woche mit Uhrzeit „in 4 Tagen, 18 Std“), Datum, Ort und die für das Fach erfasste Lernzeit gesamt und in den letzten 7 Tagen.
 - Vergangene Klausuren wandern in den eingeklappten Bereich „Vergangen“ und bleiben, bis du sie löschst.
 - Datumsrechnung nach Europe/Berlin: Tage zählen als Kalendertage; Stunden werden in Wanduhrzeit gerechnet, damit die Zeitumstellung nichts verschiebt.
@@ -134,7 +134,7 @@ Die Klausuren sitzen als Chip „🎓“ oben in der Kopfleiste; ein Klick öffn
 
 ## Stundenplan (RWTHonline)
 
-Das Widget oben in der Kopfleiste zeigt den laufenden bzw. nächsten Termin mit Countdown. Ein Klick öffnet heute und morgen (weitere Tage mit ‹ ›) mit Raum, Beschreibung, freien Zeitfenstern und abgesagten Terminen. Aktualisierung alle 30 Minuten; bei Fehlern bleiben die zuletzt geladenen Daten sichtbar.
+Das Widget oben in der Kopfleiste zeigt den laufenden bzw. nächsten Termin mit Countdown. Titel werden gekürzt angezeigt: Die vorangestellte Modulnummer (z. B. „41.00030“) und der Zusatz „, Standardgruppe“ fallen weg; Veranstaltungsart (VO, UE …) und echte Gruppen (z. B. „Tutorium W3“) bleiben. Ein Klick öffnet heute und morgen (weitere Tage mit ‹ ›) mit Raum, Beschreibung, freien Zeitfenstern und abgesagten Terminen. Aktualisierung alle 30 Minuten; bei Fehlern bleiben die zuletzt geladenen Daten sichtbar.
 
 ### iCal-Link in RWTHonline finden
 
