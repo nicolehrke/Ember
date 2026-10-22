@@ -2,6 +2,7 @@
 // Kompakt im Kopfbereich (Symbol + Temperatur), Details per Klick.
 import { h, esc } from '../core/dom.js';
 import { fetchJSON } from '../core/http.js';
+import { popover } from '../core/popover.js';
 import { icon } from './weather-icons.js';
 
 const DEFAULT_LOCATION = { name: 'Aachen', region: 'Nordrhein-Westfalen, Deutschland', lat: 50.7766, lon: 6.0834 };
@@ -76,10 +77,10 @@ async function update(container, ctx) {
   try {
     data = await fetchJSON(forecastUrl(loc));
     fetchedAt = Date.now();
-    await ctx.store.save('cache', { key: locationKey(loc), fetchedAt, data });
+    await ctx.cache.save('cache', { key: locationKey(loc), fetchedAt, data });
   } catch (err) {
     // Offline oder Server-Fehler: letzte bekannte Daten zeigen, falls vorhanden.
-    const cache = await ctx.store.load('cache');
+    const cache = await ctx.cache.load('cache');
     if (cache?.key !== locationKey(loc)) throw err;
     ({ data, fetchedAt } = cache);
     problem = err.message;
@@ -198,8 +199,8 @@ function buildPicker(picker, ctx) {
   return input;
 }
 
-// Dokumentweite Listener (Klick außerhalb, Esc) beim erneuten Rendern abräumen.
-let listeners;
+// Dokumentweite Listener des Panels beim erneuten Rendern abräumen.
+let panelControl;
 
 export default {
   id: 'weather',
@@ -208,31 +209,19 @@ export default {
   refreshInterval: 15 * 60 * 1000,
 
   async render(container, ctx) {
-    const toggle = h('button', { class: 'wx-toggle', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'wx-panel' }, '…');
+    const toggle = h('button', { class: 'wx-toggle', type: 'button', 'aria-controls': 'wx-panel' }, '…');
     const details = h('div', { class: 'wx-details' });
     const picker = h('div', { class: 'wx-picker', hidden: true });
     const placeButton = h('button', { class: 'chip', type: 'button' }, 'Ort ändern');
-    const panel = h('div', { class: 'wx-panel', id: 'wx-panel', hidden: true },
+    const panel = h('div', { class: 'popover', id: 'wx-panel', hidden: true },
       details,
       picker,
       h('div', { class: 'wx-footer' }, h('p', { class: 'wx-status muted' }), placeButton));
     container.append(toggle, panel);
 
-    const setOpen = open => {
-      panel.hidden = !open;
-      toggle.setAttribute('aria-expanded', String(open));
-      if (!open) picker.hidden = true;
-    };
-    toggle.addEventListener('click', () => setOpen(panel.hidden));
-
-    listeners?.abort();
-    listeners = new AbortController();
-    document.addEventListener('click', event => {
-      if (!panel.hidden && !event.composedPath().includes(container)) setOpen(false);
-    }, { signal: listeners.signal });
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape') setOpen(false);
-    }, { signal: listeners.signal });
+    panelControl?.destroy();
+    panelControl = popover(toggle, panel, container);
+    panel.addEventListener('popover-close', () => { picker.hidden = true; });
 
     const input = buildPicker(picker, ctx);
     placeButton.addEventListener('click', () => {

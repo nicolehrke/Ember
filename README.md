@@ -17,10 +17,14 @@ Danach <http://localhost:8000> öffnen. Jeder andere statische Server (z. B. `np
 ```
 index.html              Einstiegsseite
 css/style.css           Gesamtes Styling inkl. Hell/Dunkel-Modus
-js/main.js              Startpunkt: Theme initialisieren, Widgets einhängen
+js/main.js              Startpunkt: Migrationen, Theme, Einstellungen, Widgets, Sync
 js/core/storage.js      Speicher-Schicht (einzige Stelle mit localStorage)
+js/core/sync.js         Sync zwischen Geräten über ein GitHub Gist
+js/core/settings.js     Einstellungs-Panel (⚙︎) zum Verbinden des Syncs
+js/core/migrations.js   Einmalige Aufräumarbeiten nach Umbauten
 js/core/widget-host.js  Baut Kacheln, ruft Widgets auf, fängt Fehler ab
 js/core/theme.js        Umschaltung System / Hell / Dunkel
+js/core/popover.js      Aufklapp-Panels (Wetter, Einstellungen)
 js/core/http.js         fetchJSON() mit Timeout und verständlichen Fehlern
 js/core/dom.js          Kleine DOM-Helfer (h(), esc())
 js/widgets/index.js     Zentrale Widget-Liste
@@ -58,7 +62,8 @@ Das `ctx`-Objekt bietet:
 
 | Eigenschaft | Zweck |
 | --- | --- |
-| `ctx.store` | `load(key, fallback)`, `save(key, value)`, `remove(key)`, `subscribe(key, fn)`, automatisch mit der Widget-`id` als Präfix |
+| `ctx.store` | `load(key, fallback)`, `save(key, value)`, `remove(key)`, `subscribe(key, fn)`, automatisch mit der Widget-`id` als Präfix. Wird zwischen Geräten synchronisiert. |
+| `ctx.cache` | Wie `ctx.store`, bleibt aber auf dem Gerät, z. B. für zwischengespeicherte API-Antworten |
 | `ctx.addAction(label, onClick, title)` | Kleiner Button oben rechts in der Kachel (nur `grid`) |
 | `ctx.every(ms, fn)` | Intervall, z. B. für eine Uhr; wird beim Neuaufbau automatisch beendet |
 | `ctx.setStatus(text)` | Fußzeile der Kachel (z. B. „Aktualisiert 13:20 Uhr“), bei kompakten Widgets als Tooltip |
@@ -67,9 +72,24 @@ Das `ctx`-Objekt bietet:
 
 Wirft `render()` oder `refresh()` einen Fehler, zeigt das Widget eine Fehlermeldung mit „Erneut versuchen“ (kompakte Widgets als kleinen Button), und der Rest der Seite läuft weiter. Für Netzwerkzugriffe `fetchJSON()` aus `js/core/http.js` verwenden.
 
-## Speicher-Schicht
+## Speicher-Schicht und Sync
 
-Alle Daten laufen über `js/core/storage.js`. Die Funktionen sind bewusst asynchron, damit sich später ein Backend mit Sync anbinden lässt, indem man nur diese Datei austauscht. Ist `localStorage` nicht verfügbar (z. B. im privaten Modus), hält das Modul die Daten im Arbeitsspeicher, statt abzustürzen.
+Alle Daten laufen über `js/core/storage.js`. Die Funktionen sind bewusst asynchron, damit sich die Ablage austauschen lässt, ohne Widgets anzupassen. Ist `localStorage` nicht verfügbar (z. B. im privaten Modus), hält das Modul die Daten im Arbeitsspeicher, statt abzustürzen.
+
+Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleiben immer auf dem Gerät. Alle anderen bekommen einen Änderungszeitstempel und werden von `js/core/sync.js` abgeglichen:
+
+- **Einrichten:** ⚙︎ oben rechts → Token auf GitHub erstellen (klassischer Token, nur Häkchen „gist“) → einfügen → Verbinden. Auf jedem weiteren Gerät denselben Token eintragen. Beim ersten Verbinden legt das Dashboard ein geheimes Gist `dashboard-sync.json` an bzw. findet das vorhandene.
+- **Wann:** beim Start, etwa 2 Sekunden nach jeder Änderung, beim Zurückkehren in den Tab, wenn das Gerät wieder online ist und alle 5 Minuten.
+- **Zusammenführen:** Pro Schlüssel gewinnt die neuere Änderung. Sammlungen von Einträgen mit eigenem `updatedAt` (z. B. Lernzeiten) werden Eintrag für Eintrag zusammengeführt. Gelöschte Einträge bleiben als `deleted: true` stehen, damit das Löschen auf allen Geräten ankommt.
+- **Hinweis:** Ein geheimes Gist ist nicht öffentlich auffindbar, aber für jeden lesbar, der den Link kennt. Der Token wird nur im Browser des jeweiligen Geräts gespeichert.
+
+## Lernzeit-Tracker
+
+- Start/Stopp mit Fachauswahl. Die Startzeit wird gespeichert, der Timer läuft also über Neuladen und Geräte hinweg weiter. Sitzungen unter einer Minute werden verworfen.
+- Fächer anlegen, umbenennen, Farbe wechseln und löschen über „Fächer“.
+- Übersicht über heute und die Woche, Balkendiagramm Mo–So nach Fach, Wochen mit ‹ › durchblättern.
+- Unter „Einträge dieser Woche“ Einträge bearbeiten, löschen oder nachtragen.
+- Über „Daten“ als JSON exportieren und importieren. Ein Import führt zusammen, statt zu überschreiben, und erzeugt keine Duplikate.
 
 ## Auf GitHub Pages veröffentlichen
 

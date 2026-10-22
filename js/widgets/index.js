@@ -3,9 +3,11 @@
 import clock from './clock.js';
 import weather from './weather.js';
 import mensa from './mensa.js';
+import study from './study.js';
 
 export default [
   clock,
   weather,
   mensa,
+  study,
 ];

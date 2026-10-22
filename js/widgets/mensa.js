@@ -57,10 +57,10 @@ async function cachedFetch(ctx, key, url) {
   try {
     const data = await fetchJSON(url);
     const fetchedAt = Date.now();
-    await ctx.store.save(key, { data, fetchedAt });
+    await ctx.cache.save(key, { data, fetchedAt });
     return { data, fetchedAt, problem: null };
   } catch (err) {
-    const cache = await ctx.store.load(key);
+    const cache = await ctx.cache.load(key);
     if (!cache) throw err;
     return { ...cache, problem: err.message };
   }
@@ -97,9 +97,10 @@ function drawMeals(list, meals) {
         others != null && h('span', { class: 'muted' }, `Gäste ${priceFmt.format(others)}`)));
   });
 
-  list.replaceChildren(
+  list.replaceChildren(...[
     h('ul', { class: 'meals' }, items),
-    sides.length > 0 && h('p', { class: 'meal-sides muted' }, `Beilagen: ${sides.map(s => s.name).join(' · ')}`));
+    sides.length > 0 && h('p', { class: 'meal-sides muted' }, `Beilagen: ${sides.map(s => s.name).join(' · ')}`),
+  ].filter(Boolean));
 }
 
 export default {

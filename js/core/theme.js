@@ -18,13 +18,13 @@ function apply(mode, button) {
 }
 
 export async function initTheme(button) {
-  let mode = await load('theme', 'system');
+  let mode = await load('local/theme', 'system');
   if (!ORDER.includes(mode)) mode = 'system';
   apply(mode, button);
 
   button.addEventListener('click', () => {
     mode = ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length];
     apply(mode, button);
-    save('theme', mode);
+    save('local/theme', mode);
   });
 }

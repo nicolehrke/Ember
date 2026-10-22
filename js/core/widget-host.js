@@ -37,11 +37,23 @@ export function mountWidget(slots, widget) {
   let running = false;
   let pending = null;
   let lastRun = 0;
-  let timers = [];
+  // Intervalle und Abonnements, die beim Neuaufbau beendet werden.
+  let cleanups = [];
 
+  const store = scope(widget.id);
   const ctx = {
     root,
-    store: scope(widget.id),
+    // Synchronisierte Daten des Widgets.
+    store: {
+      ...store,
+      subscribe(key, fn) {
+        const off = store.subscribe(key, fn);
+        cleanups.push(off);
+        return off;
+      },
+    },
+    // Nur auf diesem Gerät (Caches u. Ä.), wird nie synchronisiert.
+    cache: scope(`local/cache/${widget.id}`),
     // Kleiner Button oben rechts in der Kachel (nur bei placement 'grid').
     addAction(label, onClick, title = label) {
       if (!actions) throw new Error(`addAction() gibt es nur für Kachel-Widgets (${widget.id}).`);
@@ -51,7 +63,7 @@ export function mountWidget(slots, widget) {
     },
     every(ms, fn) {
       const id = setInterval(fn, ms);
-      timers.push(id);
+      cleanups.push(() => clearInterval(id));
       return id;
     },
     // Fußzeile der Kachel; bei kompakten Widgets als Tooltip.
@@ -76,8 +88,8 @@ export function mountWidget(slots, widget) {
     root.classList.add('is-loading');
     try {
       if (kind === 'render') {
-        timers.forEach(clearInterval);
-        timers = [];
+        cleanups.forEach(fn => fn());
+        cleanups = [];
         actions?.replaceChildren();
         body.replaceChildren();
         ctx.setStatus('');

@@ -1,21 +1,27 @@
 // Zentrale Speicher-Schicht.
 // Alle Widgets lesen und schreiben ausschließlich über dieses Modul.
-// Die Schnittstelle ist bewusst asynchron (Promises): Um später ein Backend
-// mit Sync anzubinden, muss nur diese Datei ausgetauscht werden.
+// Die Schnittstelle ist bewusst asynchron (Promises), damit sich die
+// Ablage später austauschen lässt, ohne Widgets anzupassen.
 //
 //   load(key, fallback)  -> Promise<Wert | fallback>
 //   save(key, value)     -> Promise<boolean>
 //   remove(key)          -> Promise<void>
-//   keys()               -> Promise<string[]>   (z. B. für Export)
+//   keys()               -> Promise<string[]>
 //   subscribe(key, fn)   -> Abmelde-Funktion; fn(value) bei Änderungen
 //   scope(namespace)     -> { load, save, remove, subscribe } mit Präfix
+//
+// Synchronisation: Schlüssel, die mit "local/" beginnen, bleiben auf dem
+// Gerät (Caches, Zugangsdaten, Design). Alle anderen werden mit Zeitstempel
+// versehen und können von einem Sync-Modul (js/core/sync.js) abgeglichen werden.
 
 const PREFIX = 'dashboard:';
+const META_KEY = 'local/meta';
 
 // Fallback, falls localStorage nicht verfügbar ist (z. B. privater Modus,
 // blockierte Website-Daten). Daten leben dann nur bis zum Neuladen.
 const memory = new Map();
 const listeners = new Map();
+const changeListeners = new Set();
 
 function backend() {
   try {
@@ -32,8 +38,25 @@ function backend() {
 const ls = backend();
 if (!ls) console.warn('[storage] localStorage nicht verfügbar – Daten werden nur im Speicher gehalten.');
 
+export const isLocalKey = key => key.startsWith('local/');
+
 function readRaw(key) {
   return ls ? ls.getItem(PREFIX + key) : memory.get(key) ?? null;
+}
+
+function writeRaw(key, raw) {
+  if (raw == null) {
+    if (ls) ls.removeItem(PREFIX + key);
+    else memory.delete(key);
+  } else if (ls) {
+    ls.setItem(PREFIX + key, raw);
+  } else {
+    memory.set(key, raw);
+  }
+}
+
+function parse(raw, fallback) {
+  try { return raw == null ? fallback : JSON.parse(raw); } catch { return fallback; }
 }
 
 function notify(key, value) {
@@ -42,10 +65,24 @@ function notify(key, value) {
   }
 }
 
+// Merkt sich, wann ein synchronisierbarer Schlüssel zuletzt geändert wurde.
+function touch(key, time = Date.now()) {
+  const meta = parse(readRaw(META_KEY), {});
+  meta[key] = time;
+  writeRaw(META_KEY, JSON.stringify(meta));
+}
+
+function changed(key) {
+  if (isLocalKey(key)) return;
+  touch(key);
+  for (const fn of changeListeners) {
+    try { fn(key); } catch (err) { console.error('[storage] Listener-Fehler', err); }
+  }
+}
+
 export async function load(key, fallback = null) {
   try {
-    const raw = readRaw(key);
-    return raw == null ? fallback : JSON.parse(raw);
+    return parse(readRaw(key), fallback);
   } catch (err) {
     console.warn(`[storage] Konnte "${key}" nicht lesen`, err);
     return fallback;
@@ -54,9 +91,8 @@ export async function load(key, fallback = null) {
 
 export async function save(key, value) {
   try {
-    const raw = JSON.stringify(value);
-    if (ls) ls.setItem(PREFIX + key, raw);
-    else memory.set(key, raw);
+    writeRaw(key, JSON.stringify(value));
+    changed(key);
     notify(key, value);
     return true;
   } catch (err) {
@@ -67,8 +103,8 @@ export async function save(key, value) {
 
 export async function remove(key) {
   try {
-    if (ls) ls.removeItem(PREFIX + key);
-    else memory.delete(key);
+    writeRaw(key, null);
+    changed(key);
     notify(key, null);
   } catch (err) {
     console.warn(`[storage] Konnte "${key}" nicht löschen`, err);
@@ -101,10 +137,54 @@ export function scope(namespace) {
   };
 }
 
+// Löscht Schlüssel endgültig, ohne die Löschung zu synchronisieren
+// (für Aufräumarbeiten nach Umbauten, siehe js/core/migrations.js).
+export async function purge(predicate) {
+  const meta = parse(readRaw(META_KEY), {});
+  for (const key of await keys()) {
+    if (key === META_KEY || !predicate(key)) continue;
+    writeRaw(key, null);
+    delete meta[key];
+  }
+  writeRaw(META_KEY, JSON.stringify(meta));
+}
+
+// ---------- Schnittstelle für Sync-Module ----------
+
+// Wird nach jeder lokalen Änderung eines synchronisierbaren Schlüssels aufgerufen.
+export function onLocalChange(fn) {
+  changeListeners.add(fn);
+  return () => changeListeners.delete(fn);
+}
+
+// Alle synchronisierbaren Einträge als { key: { value, updatedAt } };
+// gelöschte Schlüssel erscheinen mit value null.
+export async function snapshot() {
+  const meta = parse(readRaw(META_KEY), {});
+  const result = {};
+  for (const key of await keys()) {
+    if (isLocalKey(key) || key in meta) continue;
+    meta[key] = 0; // ältere Daten ohne Zeitstempel
+  }
+  for (const [key, updatedAt] of Object.entries(meta)) {
+    if (isLocalKey(key)) continue;
+    result[key] = { value: parse(readRaw(key), null), updatedAt };
+  }
+  return result;
+}
+
+// Übernimmt Einträge aus dem Sync, ohne sie erneut als lokale Änderung zu melden.
+export async function applyRemote(entries) {
+  for (const [key, { value, updatedAt }] of Object.entries(entries)) {
+    if (isLocalKey(key)) continue;
+    writeRaw(key, value == null ? null : JSON.stringify(value));
+    touch(key, updatedAt);
+    notify(key, value);
+  }
+}
+
 // Änderungen aus anderen Tabs weiterreichen.
 window.addEventListener('storage', event => {
   if (!event.key?.startsWith(PREFIX)) return;
-  let value = null;
-  try { value = event.newValue == null ? null : JSON.parse(event.newValue); } catch { /* ignorieren */ }
-  notify(event.key.slice(PREFIX.length), value);
+  notify(event.key.slice(PREFIX.length), parse(event.newValue, null));
 });
