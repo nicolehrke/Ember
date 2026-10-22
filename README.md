@@ -210,5 +210,5 @@ Die Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverändert a
 - Wetter: [Open-Meteo](https://open-meteo.com) (kein API-Key, CC BY 4.0)
 - Mensa: [OpenMensa API v2](https://openmensa.org/api/v2) (kein API-Key, direkt aus dem Browser abrufbar). Die Canteen-IDs der Aachener Mensen stehen in `js/widgets/mensa.js`. Angezeigt wird der Studierendenpreis.
   Öffnungszeiten liefert OpenMensa nicht; sie stehen fest in `js/widgets/mensa.js` (Stand Oktober 2026 laut studierendenwerk-aachen.de, Vorlesungszeit) und müssen bei Änderungen dort angepasst werden. Das Widget zeigt „Geöffnet bis …“ bzw. „öffnet … um …“ und wechselt nach Schluss zum nächsten Öffnungstag.
-  Die Mensa Academica (ID 187) liefert bei OpenMensa derzeit keine Speisepläne. Das Widget zeigt dafür einen Hinweis.
+  Die Mensa Academica (ID 187) liefert bei OpenMensa derzeit keine Speisepläne. Das Widget zeigt dafür einen Hinweis und einen Button „Speiseplan beim Studierendenwerk ↗“, der den Wochenplan auf studierendenwerk-aachen.de öffnet (Eigenschaft `link` in der Mensa-Liste).
   Mögliche spätere Lösung: eine geplante GitHub Action, die den Plan von der Seite des Studierendenwerks ausliest und als JSON ins Repo legt.

@@ -18,6 +18,7 @@ const CANTEENS = [
   { id: 94, name: 'Bistro Templergraben', mine: true, hours: week([['10:30', '18:00']], [['10:30', '14:30']]) },
   {
     id: 187, name: 'Mensa Academica', mine: true, hours: week([['11:30', '15:00']], [['11:30', '14:30']]),
+    link: 'https://www.studierendenwerk-aachen.de/de/Gastronomie/mensa-academica-wochenplan.html',
     note: 'OpenMensa hat für die Mensa Academica derzeit keine Speisepläne. Laut Studierendenwerk ist sie zurzeit geschlossen, es gibt ein Interimsangebot.',
   },
   { id: 95, name: 'Mensa Ahornstraße', hours: STANDARD },
@@ -158,7 +159,9 @@ export default {
     const nav = h('div', { class: 'mensa-nav' }, prev, label, next);
 
     const hours = h('p', { class: 'mensa-hours' });
-    container.append(select, hours, nav, hint, list);
+    // Link zum Speiseplan beim Studierendenwerk (für Mensen ohne OpenMensa-Daten)
+    const link = h('a', { class: 'chip mensa-link', target: '_blank', rel: 'noopener', hidden: true }, 'Speiseplan beim Studierendenwerk ↗');
+    container.append(select, hours, link, nav, hint, list);
 
     // Öffnungsstatus; die ganze Woche als Tooltip
     const drawHours = () => {
@@ -210,6 +213,8 @@ export default {
       state.canteen = CANTEENS.find(c => c.id === id) ?? CANTEENS[0];
       select.value = state.canteen.id;
       drawHours();
+      link.hidden = !state.canteen.link;
+      if (state.canteen.link) link.href = state.canteen.link;
 
       const { data: days } = await cachedFetch(ctx, `days.${state.canteen.id}`, `${API}/canteens/${state.canteen.id}/days`);
       const today = isoDate(new Date());
