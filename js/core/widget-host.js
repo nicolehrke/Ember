@@ -1,44 +1,66 @@
-// Baut für jedes Widget eine Kachel, ruft render()/refresh() auf
+// Hängt Widgets in ihren Bereich ein, ruft render()/refresh() auf
 // und fängt Fehler ab, damit ein kaputtes Widget nie die Seite bricht.
 //
 // Widget-Schnittstelle (siehe README):
-//   id, title, icon?, size? ('normal' | 'wide'), refreshInterval? (ms)
+//   id, title, icon?, refreshInterval? (ms)
+//   placement? – 'grid' (Kachel, Standard), 'hero' (großer Kopfbereich links)
+//                oder 'header' (kompakt oben rechts, ohne Kachel)
+//   size?      – nur für 'grid': 'normal' | 'wide'
 //   render(container, ctx)   – baut das Widget auf (einmalig bzw. nach Fehler)
 //   refresh?(container, ctx) – aktualisiert Daten; fehlt es, wird render() erneut aufgerufen
 import { scope } from './storage.js';
 import { h } from './dom.js';
 
-export function mountWidget(grid, widget) {
-  const actions = h('div', { class: 'card-actions' });
-  const body = h('div', { class: 'card-body' });
-  const status = h('p', { class: 'card-status', hidden: true });
-  const card = h('article', { class: `card card--${widget.size ?? 'normal'}`, 'data-widget': widget.id },
-    h('header', { class: 'card-header' },
-      h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
-      actions),
-    body,
-    status);
-  grid.append(card);
+export function mountWidget(slots, widget) {
+  const placement = widget.placement ?? 'grid';
+  const compact = placement !== 'grid';
+  const body = h('div', { class: 'widget-body' });
+  let root;
+  let actions = null;
+  let status = null;
+
+  if (compact) {
+    root = h('div', { class: `slot-widget slot-widget--${placement}`, 'data-widget': widget.id }, body);
+  } else {
+    actions = h('div', { class: 'card-actions' });
+    status = h('p', { class: 'card-status', hidden: true });
+    root = h('article', { class: `card card--${widget.size ?? 'normal'}`, 'data-widget': widget.id },
+      h('header', { class: 'card-header' },
+        h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
+        actions),
+      body,
+      status);
+  }
+  (slots[placement] ?? slots.grid).append(root);
 
   let failed = false;
   let running = false;
   let lastRun = 0;
+  let timers = [];
 
   const ctx = {
-    card,
+    root,
     store: scope(widget.id),
-    // Kleiner Button oben rechts in der Kachel.
+    // Kleiner Button oben rechts in der Kachel (nur bei placement 'grid').
     addAction(label, onClick, title = label) {
+      if (!actions) throw new Error(`addAction() gibt es nur für Kachel-Widgets (${widget.id}).`);
       const button = h('button', { class: 'chip', type: 'button', title, 'aria-label': title, onclick: onClick }, label);
       actions.append(button);
       return button;
     },
     every(ms, fn) {
-      return setInterval(fn, ms);
+      const id = setInterval(fn, ms);
+      timers.push(id);
+      return id;
     },
+    // Fußzeile der Kachel; bei kompakten Widgets als Tooltip.
     setStatus(text) {
-      status.textContent = text ?? '';
-      status.hidden = !text;
+      if (status) {
+        status.textContent = text ?? '';
+        status.hidden = !text;
+      } else {
+        root.title = text ?? '';
+      }
     },
     refresh: () => run(failed || !widget.refresh ? 'render' : 'refresh'),
   };
@@ -46,10 +68,12 @@ export function mountWidget(grid, widget) {
   async function run(kind) {
     if (running) return;
     running = true;
-    card.classList.add('is-loading');
+    root.classList.add('is-loading');
     try {
       if (kind === 'render') {
-        actions.replaceChildren();
+        timers.forEach(clearInterval);
+        timers = [];
+        actions?.replaceChildren();
         body.replaceChildren();
         ctx.setStatus('');
         await widget.render(body, ctx);
@@ -60,11 +84,11 @@ export function mountWidget(grid, widget) {
     } catch (err) {
       failed = true;
       console.error(`[widget:${widget.id}]`, err);
-      showError(body, err, ctx.refresh);
+      showError(body, err, ctx.refresh, compact ? widget.title : null);
     } finally {
       lastRun = Date.now();
       running = false;
-      card.classList.remove('is-loading');
+      root.classList.remove('is-loading');
     }
   }
 
@@ -80,11 +104,20 @@ export function mountWidget(grid, widget) {
   }
 }
 
-function showError(body, err, retry) {
+function showError(body, err, retry, compactTitle) {
   const offline = !navigator.onLine;
+  const message = err?.message ?? String(err);
+
+  if (compactTitle) {
+    body.replaceChildren(
+      h('button', { class: 'chip widget-error-chip', type: 'button', title: `${message} – zum erneuten Versuch klicken`, onclick: retry },
+        `${offline ? 'Offline' : '⚠︎'} · ${compactTitle}`));
+    return;
+  }
+
   body.replaceChildren(
     h('div', { class: 'widget-error', role: 'alert' },
-      h('p', { class: 'widget-error-title' }, offline ? '📡 Offline' : '⚠️ Das hat nicht geklappt'),
-      h('p', { class: 'muted' }, err?.message ?? String(err)),
+      h('p', { class: 'widget-error-title' }, offline ? 'Offline' : 'Das hat nicht geklappt'),
+      h('p', { class: 'muted' }, message),
       h('button', { class: 'chip', type: 'button', onclick: retry }, '↻ Erneut versuchen')));
 }

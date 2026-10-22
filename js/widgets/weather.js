@@ -1,49 +1,47 @@
 // Widget „Wetter“ über Open-Meteo (https://open-meteo.com, kein API-Key nötig).
+// Kompakt im Kopfbereich (Symbol + Temperatur), Details per Klick.
 import { h, esc } from '../core/dom.js';
 import { fetchJSON } from '../core/http.js';
+import { icon } from './weather-icons.js';
 
 const DEFAULT_LOCATION = { name: 'Aachen', region: 'Nordrhein-Westfalen, Deutschland', lat: 50.7766, lon: 6.0834 };
 const HOURS_AHEAD = 24;
 
-// WMO-Wettercodes → [Text, Symbol Tag, Symbol Nacht, Stimmung]
+// WMO-Wettercodes → [Text, Icon Tag, Icon Nacht]
 const WMO = {
-  0: ['Klar', '☀️', '🌙', 'clear'],
-  1: ['Überwiegend klar', '🌤️', '🌙', 'clear'],
-  2: ['Teilweise bewölkt', '⛅', '☁️', 'cloudy'],
-  3: ['Bedeckt', '☁️', '☁️', 'cloudy'],
-  45: ['Nebel', '🌫️', '🌫️', 'fog'],
-  48: ['Reifnebel', '🌫️', '🌫️', 'fog'],
-  51: ['Leichter Niesel', '🌦️', '🌧️', 'rain'],
-  53: ['Nieselregen', '🌦️', '🌧️', 'rain'],
-  55: ['Starker Niesel', '🌧️', '🌧️', 'rain'],
-  56: ['Gefrierender Niesel', '🌧️', '🌧️', 'rain'],
-  57: ['Gefrierender Niesel', '🌧️', '🌧️', 'rain'],
-  61: ['Leichter Regen', '🌦️', '🌧️', 'rain'],
-  63: ['Regen', '🌧️', '🌧️', 'rain'],
-  65: ['Starker Regen', '🌧️', '🌧️', 'rain'],
-  66: ['Gefrierender Regen', '🌧️', '🌧️', 'rain'],
-  67: ['Gefrierender Regen', '🌧️', '🌧️', 'rain'],
-  71: ['Leichter Schneefall', '🌨️', '🌨️', 'snow'],
-  73: ['Schneefall', '🌨️', '🌨️', 'snow'],
-  75: ['Starker Schneefall', '❄️', '❄️', 'snow'],
-  77: ['Schneegriesel', '🌨️', '🌨️', 'snow'],
-  80: ['Leichte Schauer', '🌦️', '🌧️', 'rain'],
-  81: ['Regenschauer', '🌧️', '🌧️', 'rain'],
-  82: ['Heftige Schauer', '⛈️', '⛈️', 'storm'],
-  85: ['Schneeschauer', '🌨️', '🌨️', 'snow'],
-  86: ['Starke Schneeschauer', '❄️', '❄️', 'snow'],
-  95: ['Gewitter', '⛈️', '⛈️', 'storm'],
-  96: ['Gewitter mit Hagel', '⛈️', '⛈️', 'storm'],
-  99: ['Gewitter mit Hagel', '⛈️', '⛈️', 'storm'],
+  0: ['Klar', 'sun', 'moon'],
+  1: ['Überwiegend klar', 'sun', 'moon'],
+  2: ['Teilweise bewölkt', 'partly', 'cloud'],
+  3: ['Bedeckt', 'cloud', 'cloud'],
+  45: ['Nebel', 'fog', 'fog'],
+  48: ['Reifnebel', 'fog', 'fog'],
+  51: ['Leichter Niesel', 'rain', 'rain'],
+  53: ['Nieselregen', 'rain', 'rain'],
+  55: ['Starker Niesel', 'rain', 'rain'],
+  56: ['Gefrierender Niesel', 'rain', 'rain'],
+  57: ['Gefrierender Niesel', 'rain', 'rain'],
+  61: ['Leichter Regen', 'rain', 'rain'],
+  63: ['Regen', 'rain', 'rain'],
+  65: ['Starker Regen', 'rain', 'rain'],
+  66: ['Gefrierender Regen', 'rain', 'rain'],
+  67: ['Gefrierender Regen', 'rain', 'rain'],
+  71: ['Leichter Schneefall', 'snow', 'snow'],
+  73: ['Schneefall', 'snow', 'snow'],
+  75: ['Starker Schneefall', 'snow', 'snow'],
+  77: ['Schneegriesel', 'snow', 'snow'],
+  80: ['Leichte Schauer', 'rain', 'rain'],
+  81: ['Regenschauer', 'rain', 'rain'],
+  82: ['Heftige Schauer', 'storm', 'storm'],
+  85: ['Schneeschauer', 'snow', 'snow'],
+  86: ['Starke Schneeschauer', 'snow', 'snow'],
+  95: ['Gewitter', 'storm', 'storm'],
+  96: ['Gewitter mit Hagel', 'storm', 'storm'],
+  99: ['Gewitter mit Hagel', 'storm', 'storm'],
 };
 
 function wmo(code, isDay = 1) {
-  const [text, day, night, mood] = WMO[code] ?? ['Unbekannt', '🌡️', '🌡️', 'cloudy'];
-  return {
-    text,
-    icon: isDay ? day : night,
-    mood: mood === 'clear' && !isDay ? 'clear-night' : mood,
-  };
+  const [text, day, night] = WMO[code] ?? ['Unbekannt', 'cloud', 'cloud'];
+  return { text, icon: isDay ? day : night };
 }
 
 const locationKey = loc => `${loc.lat.toFixed(3)},${loc.lon.toFixed(3)}`;
@@ -69,7 +67,7 @@ function geocodeUrl(query) {
   return `https://geocoding-api.open-meteo.com/v1/search?${params}`;
 }
 
-async function update(content, ctx) {
+async function update(container, ctx) {
   const loc = await ctx.store.load('location', DEFAULT_LOCATION);
   let data;
   let fetchedAt;
@@ -87,16 +85,21 @@ async function update(content, ctx) {
     problem = err.message;
   }
 
-  draw(content, loc, data, ctx);
-  ctx.setStatus(problem
-    ? `⚠️ ${problem} Daten von ${timeFmt.format(fetchedAt)} Uhr.`
-    : `Aktualisiert ${timeFmt.format(fetchedAt)} Uhr · Daten: Open-Meteo`);
+  const now = wmo(data.current.weather_code, data.current.is_day);
+  const toggle = container.querySelector('.wx-toggle');
+  toggle.innerHTML = `${icon(now.icon)}<span>${round(data.current.temperature_2m)}°</span>`;
+  toggle.classList.toggle('is-stale', Boolean(problem));
+  toggle.title = `${now.text} in ${loc.name} – Details anzeigen`;
+
+  drawDetails(container.querySelector('.wx-details'), loc, data);
+  container.querySelector('.wx-status').textContent = problem
+    ? `${problem} Daten von ${timeFmt.format(fetchedAt)} Uhr.`
+    : `Aktualisiert ${timeFmt.format(fetchedAt)} Uhr · Open-Meteo`;
 }
 
-function draw(content, loc, data, ctx) {
+function drawDetails(el, loc, data) {
   const { current, hourly, daily } = data;
   const now = wmo(current.weather_code, current.is_day);
-  ctx.card.dataset.mood = now.mood;
 
   // Stündlicher Verlauf ab der aktuellen Stunde (Zeiten sind Ortszeit-Strings).
   const currentHour = current.time.slice(0, 13) + ':00';
@@ -107,10 +110,10 @@ function draw(content, loc, data, ctx) {
     const rain = hourly.precipitation_probability[j];
     return `
       <li class="wx-hour${i === 0 ? ' is-now' : ''}" title="${esc(w.text)}">
-        <span>${i === 0 ? 'Jetzt' : `${t.slice(11, 13)} Uhr`}</span>
-        <span class="wx-hour-icon" aria-hidden="true">${w.icon}</span>
+        <span class="wx-hour-time">${i === 0 ? 'Jetzt' : t.slice(11, 13)}</span>
+        ${icon(w.icon)}
         <span class="wx-hour-temp">${round(hourly.temperature_2m[j])}°</span>
-        <span class="wx-rain">${rain >= 10 ? `💧${rain}%` : ''}</span>
+        <span class="wx-rain">${rain >= 10 ? `${rain}%` : ''}</span>
       </li>`;
   }).join('');
 
@@ -127,27 +130,24 @@ function draw(content, loc, data, ctx) {
     return `
       <li class="wx-day" title="${esc(w.text)}">
         <span class="wx-day-name">${label}</span>
-        <span class="wx-day-icon" aria-hidden="true">${w.icon}</span>
-        <span class="wx-rain">${rain >= 10 ? `💧${rain}%` : ''}</span>
+        ${icon(w.icon)}
+        <span class="wx-rain">${rain >= 10 ? `${rain}%` : ''}</span>
         <span class="wx-day-min">${round(min)}°</span>
         <span class="wx-range"><span style="left:${((min - lo) / span) * 100}%;width:${((max - min) / span) * 100}%"></span></span>
         <span class="wx-day-max">${round(max)}°</span>
       </li>`;
   }).join('');
 
-  content.innerHTML = `
+  el.innerHTML = `
     <div class="wx-now">
-      <span class="wx-icon" aria-hidden="true">${now.icon}</span>
-      <div>
-        <div class="wx-temp">${round(current.temperature_2m)}°</div>
-        <div class="wx-desc">${esc(now.text)}</div>
-      </div>
-      <div class="wx-meta">
-        <span class="wx-place">${esc(loc.name)}</span>
-        <span>Gefühlt ${round(current.apparent_temperature)}°</span>
-        <span>💨 ${round(current.wind_speed_10m)} km/h · 💧 ${round(current.relative_humidity_2m)} %</span>
+      ${icon(now.icon)}
+      <span class="wx-temp">${round(current.temperature_2m)}°</span>
+      <div class="wx-now-text">
+        <strong>${esc(loc.name)}</strong>
+        <span class="muted">${esc(now.text)} · gefühlt ${round(current.apparent_temperature)}°</span>
       </div>
     </div>
+    <p class="wx-meta muted">Wind ${round(current.wind_speed_10m)} km/h · Luftfeuchte ${round(current.relative_humidity_2m)} %</p>
     <ol class="wx-hours" aria-label="Nächste Stunden">${hours}</ol>
     <ol class="wx-days" aria-label="Nächste Tage">${days}</ol>`;
 }
@@ -183,7 +183,7 @@ function buildPicker(picker, ctx) {
             p.name, h('span', { class: 'muted' }, region)));
       }));
     } catch (err) {
-      results.replaceChildren(h('li', {}, `⚠️ ${err.message}`));
+      results.replaceChildren(h('li', { class: 'muted' }, err.message));
     }
   };
 
@@ -193,33 +193,57 @@ function buildPicker(picker, ctx) {
       h('button', { class: 'chip', type: 'submit' }, 'Suchen')),
     results,
     h('div', {},
-      h('button', { class: 'chip', type: 'button', onclick: () => choose(DEFAULT_LOCATION) }, '↺ Aachen')));
+      h('button', { class: 'chip', type: 'button', onclick: () => choose(DEFAULT_LOCATION) }, 'Zurück zu Aachen')));
 
   return input;
 }
 
+// Dokumentweite Listener (Klick außerhalb, Esc) beim erneuten Rendern abräumen.
+let listeners;
+
 export default {
   id: 'weather',
   title: 'Wetter',
-  icon: '🌦️',
-  size: 'wide',
+  placement: 'header',
   refreshInterval: 15 * 60 * 1000,
 
   async render(container, ctx) {
+    const toggle = h('button', { class: 'wx-toggle', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'wx-panel' }, '…');
+    const details = h('div', { class: 'wx-details' });
     const picker = h('div', { class: 'wx-picker', hidden: true });
-    const content = h('div', { class: 'wx-content' });
-    container.append(picker, content);
+    const placeButton = h('button', { class: 'chip', type: 'button' }, 'Ort ändern');
+    const panel = h('div', { class: 'wx-panel', id: 'wx-panel', hidden: true },
+      details,
+      picker,
+      h('div', { class: 'wx-footer' }, h('p', { class: 'wx-status muted' }), placeButton));
+    container.append(toggle, panel);
+
+    const setOpen = open => {
+      panel.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      if (!open) picker.hidden = true;
+    };
+    toggle.addEventListener('click', () => setOpen(panel.hidden));
+
+    listeners?.abort();
+    listeners = new AbortController();
+    document.addEventListener('click', event => {
+      if (!panel.hidden && !event.composedPath().includes(container)) setOpen(false);
+    }, { signal: listeners.signal });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') setOpen(false);
+    }, { signal: listeners.signal });
 
     const input = buildPicker(picker, ctx);
-    ctx.addAction('📍 Ort', () => {
+    placeButton.addEventListener('click', () => {
       picker.hidden = !picker.hidden;
       if (!picker.hidden) input.focus();
-    }, 'Ort ändern');
+    });
 
-    await update(content, ctx);
+    await update(container, ctx);
   },
 
   async refresh(container, ctx) {
-    await update(container.querySelector('.wx-content'), ctx);
+    await update(container, ctx);
   },
 };

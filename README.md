@@ -36,7 +36,9 @@ js/widgets/*.js         Ein Modul pro Widget
      id: 'mein-widget',          // eindeutig, dient auch als Speicher-Namespace
      title: 'Mein Widget',
      icon: '✨',                  // optional
-     size: 'normal',             // optional: 'normal' oder 'wide' (2 Spalten)
+     placement: 'grid',          // optional: 'grid' (Kachel), 'hero' (Kopfbereich links)
+                                 //           oder 'header' (kompakt oben rechts)
+     size: 'normal',             // optional, nur für 'grid': 'normal' oder 'wide' (2 Spalten)
      refreshInterval: 60_000,    // optional, in ms: ruft regelmäßig refresh() auf
 
      async render(container, ctx) {
@@ -57,13 +59,13 @@ Das `ctx`-Objekt bietet:
 | Eigenschaft | Zweck |
 | --- | --- |
 | `ctx.store` | `load(key, fallback)`, `save(key, value)`, `remove(key)`, `subscribe(key, fn)`, automatisch mit der Widget-`id` als Präfix |
-| `ctx.addAction(label, onClick, title)` | Kleiner Button oben rechts in der Kachel |
-| `ctx.every(ms, fn)` | Intervall, z. B. für eine Uhr |
-| `ctx.setStatus(text)` | Fußzeile der Kachel (z. B. „Aktualisiert 13:20 Uhr“) |
+| `ctx.addAction(label, onClick, title)` | Kleiner Button oben rechts in der Kachel (nur `grid`) |
+| `ctx.every(ms, fn)` | Intervall, z. B. für eine Uhr; wird beim Neuaufbau automatisch beendet |
+| `ctx.setStatus(text)` | Fußzeile der Kachel (z. B. „Aktualisiert 13:20 Uhr“), bei kompakten Widgets als Tooltip |
 | `ctx.refresh()` | Widget neu laden |
-| `ctx.card` | Das Kachel-Element; `ctx.card.dataset.mood = 'rain'` färbt die Kachel ein |
+| `ctx.root` | Das äußere Element des Widgets |
 
-Wirft `render()` oder `refresh()` einen Fehler, zeigt die Kachel eine Fehlermeldung mit „Erneut versuchen“, und der Rest der Seite läuft weiter. Für Netzwerkzugriffe `fetchJSON()` aus `js/core/http.js` verwenden.
+Wirft `render()` oder `refresh()` einen Fehler, zeigt das Widget eine Fehlermeldung mit „Erneut versuchen“ (kompakte Widgets als kleinen Button), und der Rest der Seite läuft weiter. Für Netzwerkzugriffe `fetchJSON()` aus `js/core/http.js` verwenden.
 
 ## Speicher-Schicht
 

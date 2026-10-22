@@ -2,9 +2,9 @@
 import { load, save } from './storage.js';
 
 const MODES = {
-  system: { icon: '🖥️', label: 'System' },
-  light: { icon: '☀️', label: 'Hell' },
-  dark: { icon: '🌙', label: 'Dunkel' },
+  system: { icon: '◐', label: 'System' },
+  light: { icon: '☼', label: 'Hell' },
+  dark: { icon: '☾', label: 'Dunkel' },
 };
 const ORDER = Object.keys(MODES);
 
@@ -12,8 +12,9 @@ function apply(mode, button) {
   const root = document.documentElement;
   if (mode === 'system') delete root.dataset.theme;
   else root.dataset.theme = mode;
-  button.textContent = `${MODES[mode].icon} ${MODES[mode].label}`;
-  button.title = 'Design umschalten (System → Hell → Dunkel)';
+  button.textContent = MODES[mode].icon;
+  button.title = `Design: ${MODES[mode].label} (klicken zum Umschalten)`;
+  button.setAttribute('aria-label', button.title);
 }
 
 export async function initTheme(button) {
