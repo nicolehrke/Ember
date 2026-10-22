@@ -37,7 +37,7 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Klausuren, Gewohnheiten und Mensa sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Symbol-Buttons unter der Uhr (⏱ Lernzeit, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
+Lernzeit, Klausuren, Gewohnheiten, Mensa und Notizen sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Symbol-Buttons unter der Uhr (⏱ Lernzeit, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa, 📝 Notizen; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
 
 Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben). Gewohnheiten und Mensa zeigen nur ihr Symbol.
 
@@ -123,6 +123,14 @@ Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer,
 - **Ohne Ziel:** Serie und Rekord in Tagen sowie „15× in den letzten 23 Tagen“ (Zeitraum seit dem Anlegen, höchstens 30 Tage).
 - **Mit Wochenziel** (1–7× pro Woche): „2/3 diese Woche“ bzw. „Ziel erreicht“; Serie und Rekord zählen Wochen mit erreichtem Ziel.
 - Daten: `habits.list` (Gewohnheiten) und `habits.days` mit einem Eintrag pro Gewohnheit und Tag (`<id>|JJJJ-MM-TT`, Tagesgrenze Europe/Berlin) inklusive Zeitstempel. Streaks werden immer daraus berechnet. Weil jeder Tag ein eigener Eintrag ist, führt der Gist-Sync Abhaken auf mehreren Geräten tageweise zusammen; auch ein Rückgängigmachen (`done: false`) kommt auf allen Geräten an.
+
+## Notizen
+
+- Freie Textnotizen als Reiter (höchstens 10): „+“ legt eine neue an, „Umbenennen“ und „Löschen“ (mit Rückfrage) stehen unter dem Textfeld. Ohne Notiz genügt es, einfach loszuschreiben – die erste Notiz entsteht dabei.
+- Gespeichert wird automatisch: 500 ms nach dem Tippen, beim Verlassen des Felds und wenn die Seite in den Hintergrund geht (z. B. iPad zugeklappt). Unter dem Feld steht „Gespeichert 19:27“.
+- Das Feld wächst mit dem Text bis zu einer Höchsthöhe und scrollt dann. Schriftgröße 16 px, damit Safari auf iPad/iPhone beim Antippen nicht hineinzoomt.
+- Daten: `notes.list` mit einem Eintrag pro Notiz (wird synchronisiert und ist im Export enthalten); welche Notiz zuletzt offen war, merkt sich jedes Gerät in `local/cache/notes.active`.
+- Zwei Geräte: Verschiedene Notizen werden einzeln zusammengeführt. Wird dieselbe Notiz auf beiden Geräten vor dem Abgleich bearbeitet, gewinnt die zuletzt gespeicherte Fassung. Eingaben, die gerade getippt und noch nicht gespeichert sind, überschreibt ein Abgleich nie; wird eine Notiz auf einem Gerät gelöscht, während auf dem anderen darin getippt wird, bleibt der Text erhalten und die Notiz wird wiederhergestellt.
 
 ## Klausuren
 

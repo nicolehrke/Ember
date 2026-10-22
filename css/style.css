@@ -1065,3 +1065,48 @@ input[type="number"] {
 }
 .card-header { flex-wrap: wrap; }
 .card-header .card-actions { flex-wrap: wrap; justify-content: flex-end; }
+
+/* ---------- Widget: Notizen ---------- */
+.note-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.note-tab {
+  max-width: 14em;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.note-tab:hover:not(:disabled) { color: var(--text); border-color: var(--muted); }
+.note-tab.is-active { color: var(--text); font-weight: 600; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.note-add { min-width: 32px; padding: 4px 10px; font-size: 1rem; line-height: 1; }
+.note-add:disabled { opacity: 0.4; cursor: default; }
+.note-text {
+  display: block;
+  width: 100%;
+  min-height: 7.5em;
+  max-height: min(60vh, 520px);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* ab 16 px zoomt Safari auf dem iPad/iPhone beim Antippen nicht hinein */
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
+}
+.note-text:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.note-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
+.note-status { font-size: 0.78rem; }
+.note-status.is-error { color: #d6384a; }
+.note-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.note-rename { display: flex; gap: 6px; }
+.note-rename input { width: 12em; }
