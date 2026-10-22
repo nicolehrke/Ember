@@ -1512,3 +1512,36 @@ a.music-title:hover { text-decoration: underline; }
   border-radius: 12px;
 }
 .todo-item.is-dragging .todo-handle { cursor: grabbing; }
+.todo-today[hidden], .todo-leftover[hidden], .todo-hint[hidden] { display: none; }
+.todo-today {
+  margin-top: 12px;
+  padding: 10px 12px 4px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+}
+.todo-today .shop-list { margin-top: 4px; }
+.todo-hint { margin: 6px 0 0; }
+.todo-sun[aria-pressed="true"] { color: var(--accent); }
+.todo-leftover {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--accent);
+  font-size: 0.92rem;
+}
+.todo-leftover p { margin: 0; }
+.todo-check-btn {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.todo-check-btn[aria-pressed="true"] .shop-check { border-color: var(--accent); background: var(--accent) radial-gradient(circle, #fff 0 3px, transparent 4px); }
+.todo-item .shop-toggle.todo-text { display: grid; gap: 1px; align-content: center; padding-left: 0; }
+.todo-item.is-done .shop-check { border-color: var(--accent); }

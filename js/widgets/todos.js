@@ -2,7 +2,10 @@
 //
 // Datenmodell (über ctx.store, wird synchronisiert):
 //   items: { [id]: { id, text, status: 'open' | 'done' | 'deleted', addedAt, updatedAt,
-//                    due: 'YYYY-MM-DD' | null, doneAt?, order } }
+//                    due: 'YYYY-MM-DD' | null, doneAt?, order, today: 'YYYY-MM-DD' | null } }
+//   settings: { todayFocus, counter }   „Heute“-Bereich und Zähler am Dock-Button (Standard: an)
+// „Heute“ gilt nur für den Kalendertag in today. Am nächsten Tag zeigt die Kachel einmal pro
+// Gerät (local/cache/todos.leftoverSeen), was davon übrig ist, und bietet an, es neu zu markieren.
 // Wie bei der Einkaufsliste ist jede Aufgabe ein eigener Eintrag mit Zeitstempel: Der Sync
 // (js/core/sync.js) führt Aufgaben einzeln zusammen, pro Aufgabe gewinnt die jüngste Änderung.
 // Gelöschte bleiben als Grabstein (status 'deleted') und werden nach 30 Tagen aufgeräumt.
@@ -11,6 +14,7 @@ import { h, confirmButton } from '../core/dom.js';
 import { pruneTombstones } from './shopping.js';
 
 const UNDO_MS = 6000;
+const TODAY_HINT = 5; // ab mehr Aufgaben für heute ein sanfter Hinweis – keine Sperre
 const TZ = 'Europe/Berlin';
 
 const uid = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -116,6 +120,7 @@ const valid = t => t && typeof t === 'object' && typeof t.id === 'string' && typ
 export default {
   id: 'todos',
   title: 'Aufgaben',
+  size: 'wide',
   dock: { icon: '📋', label: 'Aufgaben' },
 
   async render(container, ctx) {
@@ -125,6 +130,9 @@ export default {
     let undo = null; // { item, timer }
     let today = berlinDate();
     let dragging = false;
+    let settings = { todayFocus: true, counter: true, ...(await ctx.store.load('settings', {})) };
+    let leftoverSeen = await ctx.cache.load('leftoverSeen', null);
+    let showSettings = false;
 
     // Defekte Einträge entfernen (sonst kann der Sync die Aufgaben nicht einzeln zusammenführen),
     // alte Grabsteine aufräumen
@@ -147,7 +155,14 @@ export default {
     const empty = h('p', { class: 'shop-empty muted' }, 'Keine offenen Aufgaben. Tippe oben eine ein – Enter fügt hinzu.');
     const done = h('details', { class: 'shop-done' });
     const toast = h('div', { class: 'shop-toast', role: 'status', hidden: true });
-    container.append(form, openList, empty, done, toast);
+    const settingsBox = h('div', { class: 'study-panel', hidden: true });
+    const leftoverBox = h('div', { class: 'todo-leftover', role: 'status', hidden: true });
+    const todayList = h('ul', { class: 'shop-list todo-list' });
+    const todayBox = h('section', { class: 'todo-today', hidden: true, 'aria-label': 'Heute' },
+      h('h3', { class: 'shop-section-title' }, '☀︎ Heute'), todayList);
+    const todayHint = h('p', { class: 'muted small todo-hint', hidden: true });
+    container.append(settingsBox, form, leftoverBox, todayBox, todayHint, openList, empty, done, toast);
+    ctx.addAction('Anzeige', () => { showSettings = !showSettings; drawSettings(); }, '„Heute“-Bereich und Zähler ein- oder ausschalten');
 
     // ---------- Speichern ----------
     const putItem = async item => {
@@ -207,7 +222,7 @@ export default {
       else return;
       await putItem({ ...t, order });
       draw();
-      if (refocus) openList.querySelector(`[data-id="${CSS.escape(id)}"] .todo-handle`)?.focus();
+      if (refocus) container.querySelector(`[data-id="${CSS.escape(id)}"] .todo-handle`)?.focus();
     };
 
     const meta = t => {
@@ -215,26 +230,41 @@ export default {
       return t.due ? dueLabel(t.due, today) : '';
     };
 
+    const toggleDone = async t => {
+      const isDone = t.status === 'done';
+      await putItem(isDone ? { ...t, status: 'open', doneAt: null } : { ...t, status: 'done', doneAt: Date.now() });
+      draw();
+    };
+
     const row = t => {
       if (editing === t.id) return h('li', {}, editForm(t));
       const isDone = t.status === 'done';
       const overdue = !isDone && t.due && t.due < today;
       const info = meta(t);
-      return h('li', { class: `shop-item todo-item${isDone ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}${!isDone && t.due === today ? ' is-due' : ''}`, 'data-id': t.id, 'data-group': t.due ?? '' },
+      const isToday = !isDone && settings.todayFocus && t.today === today;
+      return h('li', { class: `shop-item todo-item${isDone ? ' is-done' : ''}${overdue ? ' is-overdue' : ''}${!isDone && t.due === today ? ' is-due' : ''}`, 'data-id': t.id, 'data-group': isToday ? 'today' : t.due ?? '' },
         !isDone && h('button', { class: 'todo-handle', type: 'button', title: 'Ziehen zum Verschieben (oder Pfeiltasten)', 'aria-label': `${t.text} verschieben, Pfeiltasten hoch oder runter` }, '⠿'),
+        // Kreis: abhaken bzw. zurückholen. Text: bearbeiten (offene) bzw. zurückholen (erledigte).
         h('button', {
-          class: 'shop-toggle', type: 'button', 'aria-pressed': String(isDone),
+          class: 'todo-check-btn', type: 'button', 'aria-pressed': String(isDone),
           'aria-label': `${t.text}${info ? `, ${info}` : ''} – ${isDone ? 'zurückholen' : 'abhaken'}`,
+          onclick: () => toggleDone(t),
+        }, h('span', { class: 'shop-check', 'aria-hidden': 'true' })),
+        h('button', {
+          class: 'shop-toggle todo-text', type: 'button',
+          title: isDone ? 'Zurückholen' : 'Bearbeiten', 'aria-label': `${t.text} ${isDone ? 'zurückholen' : 'bearbeiten'}`,
+          onclick: () => { if (isDone) toggleDone(t); else { editing = t.id; draw(); } },
+        },
+        h('span', { class: 'shop-name' }, t.text),
+        info && h('span', { class: 'todo-meta' }, info)),
+        !isDone && settings.todayFocus && h('button', {
+          class: 'shop-icon-btn todo-sun', type: 'button', 'aria-pressed': String(isToday),
+          title: isToday ? 'Nicht mehr für heute' : 'Für heute vormerken', 'aria-label': `${t.text} ${isToday ? 'nicht mehr für heute' : 'für heute vormerken'}`,
           onclick: async () => {
-            await putItem(isDone ? { ...t, status: 'open', doneAt: null } : { ...t, status: 'done', doneAt: Date.now() });
+            await putItem({ ...t, today: isToday ? null : today });
             draw();
           },
-        },
-        h('span', { class: 'shop-check', 'aria-hidden': 'true' }),
-        h('span', { class: 'todo-text' },
-          h('span', { class: 'shop-name' }, t.text),
-          info && h('span', { class: 'todo-meta' }, info))),
-        !isDone && h('button', { class: 'shop-icon-btn', type: 'button', title: 'Bearbeiten', 'aria-label': `${t.text} bearbeiten`, onclick: () => { editing = t.id; draw(); } }, '✎'),
+        }, '☀︎'),
         h('button', {
           class: 'shop-icon-btn', type: 'button', title: 'Löschen', 'aria-label': `${t.text} löschen`,
           onclick: async () => {
@@ -277,12 +307,74 @@ export default {
       return (a.order ?? a.addedAt) - (b.order ?? b.addedAt);
     });
 
+    // ---------- Heute ----------
+    const isTodayItem = t => settings.todayFocus && t.today === today;
+    // Übrig von einem früheren „Heute“, noch nicht erledigt
+    const leftovers = () => byStatus('open').filter(t => isIsoDate(t.today) && t.today < today);
+
+    const clearLeftovers = async remark => {
+      const now = Date.now();
+      items = { ...items };
+      for (const t of leftovers()) items[t.id] = { ...t, today: remark ? today : null, updatedAt: now };
+      await ctx.store.save('items', items);
+      leftoverSeen = today;
+      await ctx.cache.save('leftoverSeen', today);
+      draw();
+    };
+
+    function drawLeftovers() {
+      const list = leftovers();
+      leftoverBox.hidden = !settings.todayFocus || !list.length || leftoverSeen === today;
+      if (leftoverBox.hidden) return;
+      const newest = list.map(t => t.today).sort().at(-1);
+      const when = daysBetween(newest, today) === 1 ? 'von gestern' : `vom ${shortDate(newest)}`;
+      leftoverBox.replaceChildren(
+        h('p', {}, h('strong', {}, `Noch offen ${when}: `), list.slice(0, 4).map(t => t.text).join(', '), list.length > 4 ? ` und ${list.length - 4} weitere` : ''),
+        h('div', { class: 'study-form-row' },
+          h('button', { class: 'chip chip--accent', type: 'button', onclick: () => clearLeftovers(true) }, 'Wieder für heute'),
+          h('button', { class: 'chip', type: 'button', onclick: () => clearLeftovers(false) }, 'Nein, danke')));
+    }
+
+    // Zähler am Dock-Button: offene Aufgaben, die heute fällig oder überfällig sind
+    function drawBadge() {
+      const due = byStatus('open').filter(t => t.due && t.due <= today);
+      const overdue = due.filter(t => t.due < today).length;
+      if (!settings.counter || !due.length) return ctx.setBadge(null);
+      const title = [overdue && `${overdue} überfällig`, due.length - overdue && `${due.length - overdue} heute fällig`].filter(Boolean).join(', ');
+      return ctx.setBadge(String(due.length), { highlight: overdue > 0, title: `Aufgaben: ${title}` });
+    }
+
+    function drawSettings() {
+      settingsBox.hidden = !showSettings;
+      if (!showSettings) return;
+      const check = (key, label) => {
+        const input = h('input', { type: 'checkbox', checked: Boolean(settings[key]) });
+        input.addEventListener('change', async () => {
+          settings = { ...settings, [key]: input.checked };
+          await ctx.store.save('settings', settings);
+          draw();
+        });
+        return h('label', { class: 'pomo-check' }, input, label);
+      };
+      settingsBox.replaceChildren(
+        check('todayFocus', '„Heute“-Bereich (☀︎ markiert eine Aufgabe für heute)'),
+        check('counter', 'Zähler am Dock-Button (heute fällig oder überfällig)'));
+    }
+
     function draw() {
-      const open = sortOpen(byStatus('open'));
+      const all = sortOpen(byStatus('open'));
+      const open = all.filter(t => !isTodayItem(t));
+      const todays = all.filter(isTodayItem).sort((a, b) => rank(a) - rank(b));
+      todayBox.hidden = !todays.length;
+      todayList.replaceChildren(...todays.map(row));
+      todayHint.hidden = todays.length <= TODAY_HINT;
+      todayHint.textContent = `${todays.length} Aufgaben für heute – meist schafft man mit höchstens ${TODAY_HINT} mehr.`;
+      drawLeftovers();
+      drawBadge();
       const finished = byStatus('done').sort((a, b) => (b.doneAt ?? b.updatedAt) - (a.doneAt ?? a.updatedAt));
 
       openList.replaceChildren(...open.map(row));
-      empty.hidden = open.length > 0;
+      empty.hidden = all.length > 0;
 
       done.hidden = !finished.length;
       const wasOpen = done.open;
@@ -302,6 +394,8 @@ export default {
     // Änderungen anderer Geräte übernehmen (nicht während eines Bearbeitungsformulars)
     const busy = () => dragging || (editing && container.contains(document.activeElement));
     enableReorder(openList, moveItem, value => { dragging = value; });
+    enableReorder(todayList, moveItem, value => { dragging = value; });
+    ctx.store.subscribe('settings', v => { settings = { todayFocus: true, counter: true, ...(v ?? {}) }; drawSettings(); if (!busy()) draw(); });
     ctx.store.subscribe('items', v => { items = v && typeof v === 'object' ? v : {}; if (!busy()) draw(); });
     ctx.onCleanup(hideUndo);
 
