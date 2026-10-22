@@ -24,11 +24,14 @@ js/core/settings.js     Einstellungs-Panel (⚙︎) zum Verbinden des Syncs
 js/core/migrations.js   Einmalige Aufräumarbeiten nach Umbauten
 js/core/widget-host.js  Baut Kacheln, ruft Widgets auf, fängt Fehler ab
 js/core/theme.js        Umschaltung System / Hell / Dunkel
-js/core/popover.js      Aufklapp-Panels (Wetter, Einstellungen)
-js/core/http.js         fetchJSON() mit Timeout und verständlichen Fehlern
-js/core/dom.js          Kleine DOM-Helfer (h(), esc())
+js/core/popover.js      Aufklapp-Panels (Wetter, Stundenplan, Einstellungen)
+js/core/http.js         fetchJSON()/fetchText() mit Timeout und verständlichen Fehlern
+js/core/ical.js         Schlanker iCal-Parser inkl. Wiederholungen und Zeitzonen
+js/core/dom.js          Kleine DOM-Helfer (h(), esc(), confirmButton())
 js/widgets/index.js     Zentrale Widget-Liste
 js/widgets/*.js         Ein Modul pro Widget
+examples/               Beispiel-Stundenplan (.ics) mit erfundenen Terminen
+proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 ```
 
 ## Neues Widget hinzufügen
@@ -91,6 +94,54 @@ Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleib
 - Übersicht über heute und die Woche, Balkendiagramm Mo–So nach Fach, Wochen mit ‹ › durchblättern.
 - Unter „Einträge dieser Woche“ Einträge bearbeiten, löschen oder nachtragen.
 - Über „Daten“ als JSON exportieren und importieren. Ein Import führt zusammen, statt zu überschreiben, und erzeugt keine Duplikate.
+
+## Stundenplan (RWTHonline)
+
+Das Widget oben in der Kopfleiste zeigt den laufenden bzw. nächsten Termin mit Countdown. Ein Klick öffnet heute und morgen (weitere Tage mit ‹ ›) mit Raum, Beschreibung, freien Zeitfenstern und abgesagten Terminen. Aktualisierung alle 30 Minuten; bei Fehlern bleiben die zuletzt geladenen Daten sichtbar.
+
+### iCal-Link in RWTHonline finden
+
+In RWTHonline deinen Terminkalender öffnen und dort die Export- bzw. Abo-Funktion (iCal) wählen. Den angebotenen Abo-Link kopieren (beginnt mit `https://` oder `webcal://`). Die genaue Bezeichnung des Menüpunkts kann sich je nach RWTHonline-Version unterscheiden.
+
+**Der Link enthält einen persönlichen Schlüssel und ist wie ein Passwort zu behandeln.** Nicht in Code, Commits, Issues oder Chats einfügen. Falls er doch einmal öffentlich geworden ist: In RWTHonline beim Kalender-Export einen neuen Link erzeugen; der alte wird damit ungültig.
+
+### Im Dashboard eintragen
+
+Auf das Stundenplan-Feld oben klicken → Link einfügen → Speichern. Der Link wird nur im Gerätespeicher des Browsers abgelegt (`local/`), nie im Gist-Sync; auf jedem Gerät also einmal eintragen.
+
+**Wichtig:** RWTHonline erlaubt den direkten Abruf des Abo-Links aus dem Browser nicht (fehlende CORS-Header). Es gibt zwei Wege:
+
+1. **Datei-Import** (ohne Einrichtung): Kalender in RWTHonline als `.ics` herunterladen und im Widget über „.ics-Datei importieren“ laden. Ist nicht automatisch aktuell, bei Änderungen erneut importieren.
+2. **Eigener Proxy** (automatisch aktuell): siehe nächster Abschnitt. Im Dashboard trägst du dann statt des RWTHonline-Links die Worker-Adresse ein.
+
+**Zum Testen ohne echten Link** als Link `examples/stundenplan-beispiel.ics` eintragen. Die Datei enthält erfundene Termine (wöchentliche und 14-tägige Serien, Zeitumstellung, Ausnahme, verlegter und abgesagter Termin, ganztägiger Termin).
+
+### Proxy mit Cloudflare Workers einrichten
+
+Der Worker (`proxy/cloudflare-worker/worker.js`) läuft in deinem eigenen Cloudflare-Konto (kostenloser Plan genügt), ruft den RWTHonline-Link ab und liefert ihn mit CORS-Headern aus. Der RWTHonline-Link liegt dort als Secret – er steht weder im Code noch im Dashboard. Das Dashboard bekommt nur die Worker-Adresse mit einem eigenen Zugriffsschlüssel.
+
+1. **Zugriffsschlüssel erzeugen** (im Terminal auf dem Mac):
+
+   ```bash
+   openssl rand -hex 24
+   ```
+
+   Die Ausgabe ist dein `ACCESS_KEY`. Wie ein Passwort behandeln.
+
+2. **Worker anlegen:** Auf <https://dash.cloudflare.com> anmelden bzw. kostenloses Konto erstellen → **Workers & Pages** → **Create** → **Create Worker** („Hello World“-Vorlage) → Namen vergeben, z. B. `dashboard-ical` → **Deploy**.
+3. **Code einfügen:** Beim neuen Worker **Edit code** → den gesamten Inhalt von `proxy/cloudflare-worker/worker.js` hineinkopieren (vorhandenen Code ersetzen) → **Deploy**.
+4. **Secrets setzen:** Worker → **Settings** → **Variables and Secrets** → **Add**:
+   - Typ **Secret**, Name `ICAL_URL`, Wert: dein RWTHonline-Abo-Link (`webcal://` vorher durch `https://` ersetzen)
+   - Typ **Secret**, Name `ACCESS_KEY`, Wert: der Schlüssel aus Schritt 1
+   - optional Typ **Text**, Name `ALLOWED_ORIGINS`, Wert: deine Dashboard-Adressen ohne Pfad, kommagetrennt, z. B. `https://<benutzer>.github.io,http://localhost:8000`
+
+   Speichern bzw. **Deploy** – die Werte gelten ab der nächsten Bereitstellung.
+5. **Testen:** Im Browser `https://dashboard-ical.<dein-subdomain>.workers.dev/?key=<ACCESS_KEY>` öffnen. Es sollte Text erscheinen, der mit `BEGIN:VCALENDAR` beginnt. Mögliche Antworten sonst: „Zugriff verweigert“ (Schlüssel falsch), „RWTHonline antwortet mit Fehler …“ bzw. „liefert keinen iCal-Kalender“ (Link falsch oder abgelaufen).
+6. **Im Dashboard eintragen:** Stundenplan → Einrichtung → genau diese Adresse inklusive `?key=…` als Link speichern.
+
+Alternative mit der Kommandozeile (benötigt Node.js): im Ordner `proxy/cloudflare-worker` `npx wrangler login`, `npx wrangler deploy`, dann `npx wrangler secret put ICAL_URL` und `npx wrangler secret put ACCESS_KEY` (Werte werden abgefragt, nicht in Dateien geschrieben). `.dev.vars` und `.wrangler/` sind in `.gitignore` eingetragen.
+
+Neuen RWTHonline-Link oder Schlüssel? Einfach das jeweilige Secret im Cloudflare-Dashboard überschreiben. Beim Wechsel des `ACCESS_KEY` auch den Link im Dashboard aktualisieren.
 
 ## Auf GitHub Pages veröffentlichen
 

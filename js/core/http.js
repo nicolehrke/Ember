@@ -1,5 +1,6 @@
 // Gemeinsame Fetch-Helfer mit Timeout und verständlichen Fehlermeldungen.
-// Netzwerkfehler (auch von CORS blockierte Abrufe) tragen err.code = 'network'.
+// Netzwerkfehler (auch von CORS blockierte Abrufe) tragen err.code = 'network',
+// Fehlerantworten des Servers err.status.
 
 async function request(url, { timeout = 10000 } = {}, read) {
   if (!navigator.onLine) throw new Error('Offline – keine Internetverbindung.');
@@ -8,7 +9,11 @@ async function request(url, { timeout = 10000 } = {}, read) {
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
     const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) throw new Error(`Der Server antwortet mit Fehler ${res.status}.`);
+    if (!res.ok) {
+      const error = new Error(`Der Server antwortet mit Fehler ${res.status}.`);
+      error.status = res.status;
+      throw error;
+    }
     return await read(res);
   } catch (err) {
     if (err.name === 'AbortError') throw new Error('Zeitüberschreitung beim Laden.');

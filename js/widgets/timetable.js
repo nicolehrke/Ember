@@ -49,8 +49,12 @@ function normalizeUrl(input) {
 
 function explain(err) {
   if (err.code === 'network' && navigator.onLine) {
-    return 'Kalender nicht abrufbar – RWTHonline blockiert den direkten Abruf (CORS) oder ist nicht erreichbar. Als Ausweg die .ics-Datei importieren.';
+    return 'Kalender nicht abrufbar – RWTHonline blockiert den direkten Abruf (CORS) oder ist nicht erreichbar. Nutze den eigenen Proxy (siehe README) oder importiere die .ics-Datei.';
   }
+  // Antworten des eigenen Proxys (proxy/cloudflare-worker)
+  if (err.status === 401) return 'Der Proxy lehnt den Zugriff ab – stimmt der Schlüssel (key=…) im Link?';
+  if (err.status === 403) return 'Der Proxy erlaubt diese Dashboard-Adresse nicht – ALLOWED_ORIGINS prüfen.';
+  if (err.status === 502) return 'Der Proxy erreicht RWTHonline nicht, oder der Abo-Link ist abgelaufen.';
   return err.message;
 }
 

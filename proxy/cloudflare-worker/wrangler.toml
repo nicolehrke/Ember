@@ -1,0 +1,5 @@
+# Nur für die Variante mit der Kommandozeile (wrangler). Secrets gehören NICHT
+# in diese Datei, sondern werden mit `npx wrangler secret put …` gesetzt.
+name = "dashboard-ical"
+main = "worker.js"
+compatibility_date = "2026-09-01"
