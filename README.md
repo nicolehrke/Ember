@@ -28,6 +28,7 @@ js/core/theme.js        Stil, Hell/Dunkel und Tageszeit-Akzente, Stil-Menü (Pal
 js/theme/palettes.js    Alle Stile: Phasen, Farb-Stützpunkte über den Tag, Schriften
 js/core/briefing.js     Briefing-Satz neben der Uhr und Fokus-Modus
 js/core/icons.js        Liniensymbole für Dock und Kopfleiste
+js/core/layout.js       Kacheln verschieben (Ziehen, Tastatur), Reihenfolge, Layout zurücksetzen
 js/core/popover.js      Aufklapp-Panels (Wetter, Stundenplan, Einstellungen)
 js/core/http.js         fetchJSON()/fetchText() mit Timeout und verständlichen Fehlern
 js/core/ical.js         Schlanker iCal-Parser inkl. Wiederholungen und Zeitzonen
@@ -47,11 +48,26 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen und Musik sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Liniensymbolen und Beschriftung unter der Uhr (Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkauf, Notizen, Musik), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer. Jede Kachel hat im Kopf einen Umschalter S/M/L für ihre Größe (siehe „Design & Stile“).
+Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen und Musik sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Liniensymbolen und Beschriftung unter der Uhr (Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkauf, Notizen, Musik), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein; ihre Reihenfolge und Größe lassen sich frei anpassen (siehe „Layout anpassen“). Sind alle geschlossen, bleibt der Hauptbereich leer.
 
 Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben). Gewohnheiten und Mensa zeigen nur ihr Symbol.
 
 Welche Kacheln offen sind, speichert jedes Gerät für sich in `local/open` (wird nicht synchronisiert), damit Mac und iPad unterschiedliche Ansichten haben können. Ohne gespeicherten Zustand sind Mensa und Gewohnheiten offen.
+
+## Layout anpassen
+
+Ohne eigenen Anordnen-Modus: Jede Kachel lässt sich jederzeit verschieben und in der Größe ändern.
+
+- **Größe:** Fährt die Maus über eine Kachel (oder liegt der Tastaturfokus darin), erscheint links vom × ein Button mit zwei Diagonalpfeilen. Jeder Klick wechselt reihum Klein → Mittel → Groß (S → M → L); die aktuelle Größe steht im Tooltip und in der Sprachausgabe. Auf Touch-Geräten ohne Hover blendet ein Tipp auf den Kachelkopf den Button für 4 Sekunden ein; bis dahin ist er unsichtbar und nicht antippbar, damit niemand versehentlich die Größe ändert.
+- **Verschieben mit Maus:** Kachelkopf greifen und ziehen (bei Hover zeigt ein Griff mit sechs Punkten, wo). Das Ziehen beginnt nach 6 px Bewegung, ein einfacher Klick bleibt ein Klick. Buttons im Kopf und der Kachelinhalt lösen kein Ziehen aus.
+- **Verschieben mit Touch (iPad, Handy):** Kachelkopf 300 ms gedrückt halten (kurze Vibration, wo verfügbar), dann ziehen. Wer sofort wischt, scrollt ganz normal.
+- **Beim Ziehen** hält ein gestrichelter Platzhalter den Platz, die anderen Kacheln rücken nach, beim Loslassen rastet die Kachel ein. Am oberen und unteren Fensterrand scrollt die Seite mit. Esc bricht ab.
+- **Tastatur:** Mit Tab den Griff einer Kachel ansteuern, Leertaste greift, Pfeiltasten verschieben um eine Position, Leertaste setzt ab, Esc bricht ab. Die Position wird angesagt („Mensa, Position 3 von 6“).
+- Während Pomodoro oder ein Timer läuft (Fokus-Modus), ist Verschieben aus.
+
+Die Reihenfolge liegt als Liste der Kachel-IDs unter `layout.order` und wird über das Gist synchronisiert (die jüngste Änderung gewinnt). Kacheln, die in der Liste fehlen (z. B. neue Widgets), kommen ans Ende; unbekannte IDs werden ignoriert. Geschlossene Kacheln behalten ihren Platz und erscheinen beim Öffnen wieder dort. Das Raster füllt Lücken auf (`grid-auto-flow: dense`), deshalb kann eine kleine Kachel auf einen freien Platz vor einer großen rutschen. Die Größen gelten pro Gerät (`local/sizes`).
+
+**⚙︎ → Layout → Layout zurücksetzen** stellt die Standardreihenfolge (auf allen Geräten) und die Standardgrößen (auf diesem Gerät) wieder her; der Button fragt einmal nach („Wirklich zurücksetzen?“).
 
 ## Neues Widget hinzufügen
 
@@ -65,6 +81,7 @@ Welche Kacheln offen sind, speichert jedes Gerät für sich in `local/open` (wir
      placement: 'grid',          // optional: 'grid' (Kachel), 'hero' (Kopfbereich links)
                                  //           oder 'header' (kompakt oben rechts)
      size: 's',                  // optional, nur für 'grid': Standardgröße 's', 'm' oder 'l'
+     sizes: ['s', 'm', 'l'],     // optional: erlaubte Größen (der Größen-Button überspringt fehlende)
      dock: { icon: 'notes', label: 'Mein Widget' }, // optional: Button im Dock öffnet/schließt die Kachel;
                                  // icon ist ein Name aus js/core/icons.js
      defaultOpen: false,         // optional, mit dock: ohne gespeicherten Zustand geöffnet?
@@ -123,7 +140,7 @@ Bei Glas, Papier und Jarvis wird der Modus erzwungen; der Hell/Dunkel-Schalter i
 
 **Ruhe und Fokus.** Läuft Pomodoro, ein Countdown-Timer oder der freie Lerntimer, wechselt Ember in den Fokus: Die Lernzeit wird zur großen Kachel mit Ring und Zeit, die übrigen Kacheln gehen auf 36 % Deckkraft (beim Darüberfahren wieder voll), die Uhr auf 50 %, das Glühen wandert in die Mitte und statt des Briefings steht ein Fokus-Satz. Danach geht es automatisch zurück in die Ruhe.
 
-**Kachelgrößen.** S (eine Zelle), M (zwei breit) und L (zwei breit, zwei hoch) im 4-Spalten-Raster, unter 900 px 2 Spalten, unter 560 px eine Spalte (M und L dann doppelt hoch). S zeigt Kennzahl und Hauptaktion, M mehr Details, L zusätzlich Wochenbalken und Verlauf (z. B. Lernzeit: S Timer und Summen, M mit Modus-Umschalter, L mit Wochenbalken und Einträgen). Die Wahl gilt pro Gerät (`local/sizes`). Leere Kacheln schrumpfen auf ihren Inhalt.
+**Kachelgrößen.** S (eine Zelle), M (zwei breit) und L (zwei breit, zwei hoch) im 4-Spalten-Raster, unter 900 px 2 Spalten, unter 560 px eine Spalte (M und L dann doppelt hoch). S zeigt Kennzahl und Hauptaktion, M mehr Details, L zusätzlich Wochenbalken und Verlauf (z. B. Lernzeit: S Timer und Summen, M mit Modus-Umschalter, L mit Wochenbalken und Einträgen). Umgeschaltet wird über den Größen-Button im Kachelkopf (siehe „Layout anpassen“); die Wahl gilt pro Gerät (`local/sizes`). Leere Kacheln schrumpfen auf ihren Inhalt.
 
 **Bewegung und Bedienung.** Animationen nutzen nur `transform` und `opacity` (Kachel öffnen 240 ms). `prefers-reduced-motion` schaltet Atmen, HUD-Ring und Eingangsanimationen ab. Fokusring 2 px in Akzentfarbe in allen Stilen; Touch-Ziele mindestens 40 px, bestehende 44 px bleiben.
 
