@@ -36,6 +36,7 @@ const calendarDays = (from, to) => Math.round((wall(to) - wall(from)) / DAY);
 const addDays = (date, n) => new Date(wall(date) + n * DAY).toISOString().slice(0, 10);
 
 const dateFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+const shortDateFmt = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
 const HIGHLIGHT_DAYS = 14;
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -299,30 +300,24 @@ export default {
 
       let terms;
       if (all.length > 1) {
-        // Zwei Termine als Auswahl: jeder Termin ist selbst antippbar (wie Radiobuttons).
-        // Ein erneuter Tipp auf den gewählten Termin hebt die Wahl wieder auf.
-        terms = [
-          h('div', { class: 'exam-choice', role: 'radiogroup', 'aria-label': `Termin für ${subject.name}` },
-            all.map(term => {
-              const c = countdownFor(term);
-              const selected = exam.chosen === term.n;
-              return h('button', {
-                class: `exam-option${selected ? ' is-selected' : ''}${exam.chosen && !selected ? ' is-dimmed' : ''}${c.past ? ' is-past' : ''}`,
-                type: 'button',
-                role: 'radio',
-                'aria-checked': String(selected),
-                disabled: c.past && !selected,
-                title: selected ? 'Gewählt – erneut tippen, um die Wahl aufzuheben' : `${term.n}. Termin wählen`,
-                onclick: () => choose(selected ? null : term.n),
-              },
-              h('span', { class: 'exam-radio', 'aria-hidden': 'true' }),
-              h('span', { class: 'exam-option-main' },
-                h('span', { class: 'exam-option-title' }, `${term.n}. Termin`),
-                h('span', { class: 'exam-option-when muted' }, termLine(term))),
-              h('span', { class: 'exam-option-countdown muted' }, c.past ? 'vorbei' : chipCountdown(term)));
-            })),
-          !exam.chosen && h('p', { class: 'exam-choice-hint muted' }, 'Noch offen – tippe auf den Termin, den du schreibst.'),
-        ];
+        // Zwei Termine als kompakter Umschalter; erneutes Antippen hebt die Wahl auf.
+        terms = [h('div', { class: 'exam-pick', role: 'radiogroup', 'aria-label': `Termin für ${subject.name}` },
+          all.map(term => {
+            const c = countdownFor(term);
+            const selected = exam.chosen === term.n;
+            const when = [shortDateFmt.format(wall(term.date)), term.time].filter(Boolean).join(', ');
+            const details = `${term.n}. Termin: ${termLine(term)} – ${c.past ? 'vorbei' : c.text}`;
+            return h('button', {
+              class: `exam-pick-btn${selected ? ' is-selected' : ''}${c.past ? ' is-past' : ''}`,
+              type: 'button',
+              role: 'radio',
+              'aria-checked': String(selected),
+              'aria-label': details,
+              title: selected ? `${details} (gewählt – erneut tippen hebt die Wahl auf)` : details,
+              disabled: c.past && !selected,
+              onclick: () => choose(selected ? null : term.n),
+            }, h('span', { class: 'exam-pick-n' }, `${term.n}.`), when);
+          }))];
       } else {
         terms = [h('div', { class: 'exam-meta muted' }, termLine(active[0]))];
       }
@@ -330,7 +325,8 @@ export default {
       return h('li', { class: `exam${next ? ' is-next' : ''}${status.past ? ' is-past' : ''}`, style: `--subject:${subject.color}` },
         h('div', { class: 'exam-head' },
           h('span', { class: 'dot', style: `background:${subject.color}` }),
-          h('span', { class: 'exam-subject' }, subject.name),
+          h('span', { class: 'exam-subject' }, subject.name,
+            all.length > 1 && !exam.chosen && h('span', { class: 'exam-open-tag' }, 'offen')),
           h('span', { class: 'exam-countdown' }, status.countdown.text)),
         ...terms,
         exam.note && h('div', { class: 'exam-note' }, exam.note),
