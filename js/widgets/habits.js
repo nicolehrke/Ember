@@ -71,6 +71,8 @@ export function stats(habit, doneSet, now = today()) {
 export default {
   id: 'habits',
   title: 'Gewohnheiten',
+  dock: { icon: '✅', label: 'Gewohnheiten' },
+  defaultOpen: true,
 
   async render(container, ctx) {
     let list = await ctx.store.load('list', {});
@@ -116,6 +118,11 @@ export default {
       next.disabled = weekOffset >= 0;
       const habits = active();
       weekbar.hidden = !habits.length;
+      // Zähler am Dock-Button (auch bei geschlossener Kachel sichtbar)
+      const doneCount = habits.filter(x => doneSet(x.id).has(now)).length;
+      ctx.setBadge(habits.length ? `${doneCount}/${habits.length} heute` : '', {
+        title: habits.length ? `Gewohnheiten: ${doneCount} von ${habits.length} heute erledigt` : null,
+      });
 
       if (!habits.length) {
         rows.replaceChildren(h('li', { class: 'habit-empty muted' },

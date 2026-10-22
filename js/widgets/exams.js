@@ -1,6 +1,5 @@
 // Widget „Klausuren“: Countdown bis zu den nächsten Klausuren mit der bisher
-// gelernten Zeit pro Fach (aus dem Lernzeit-Widget). Sitzt als Chip 🎓 in der
-// Kopfleiste und öffnet sich als Seitenleiste; der Chip kann die Tage bis zur
+// gelernten Zeit pro Fach (aus dem Lernzeit-Widget). Der Dock-Button kann die Tage bis zur
 // nächsten Klausur zeigen (Einstellung 'showDays', wird synchronisiert).
 //
 // Datenmodell (über ctx.store, wird synchronisiert):
@@ -100,8 +99,8 @@ export function nextExam(exams, t = Date.now()) {
   return best;
 }
 
-// Kurzform für den Chip: „107 Tage“, unter einer Woche „4 Tage 18 Std“.
-export function chipCountdown(term, t = Date.now()) {
+// Kurzform für den Dock-Button: „107 Tage“, unter einer Woche „4 Tage 18 Std“.
+export function dockCountdown(term, t = Date.now()) {
   const now = berlinNow(t);
   const days = calendarDays(now.date, term.date);
   if (days >= 7) return `${days} Tage`;
@@ -120,8 +119,7 @@ const termLine = term => [dateFmt.format(wall(term.date)), term.time && `${term.
 export default {
   id: 'exams',
   title: 'Klausuren',
-  icon: '🎓',
-  placement: 'drawer',
+  dock: { icon: '🎓', label: 'Klausuren' },
 
   async render(container, ctx) {
     let exams = await ctx.store.load('list', {});
@@ -143,20 +141,20 @@ export default {
 
     const listEl = h('div', { class: 'exam-list' });
     const formSlot = h('div', { class: 'exam-form-slot' });
-    // Nächste Klausur als Text (für das iPad, wo es keine Tooltips gibt) und Chip-Einstellung
+    // Nächste Klausur als Text (für das iPad, wo es keine Tooltips gibt) und Dock-Einstellung
     const summary = h('p', { class: 'exam-summary' });
     const showDaysInput = h('input', { type: 'checkbox', checked: showDays });
     showDaysInput.addEventListener('change', async () => {
       showDays = showDaysInput.checked;
       await ctx.store.save('showDays', showDays);
-      updateChip();
+      updateDock();
     });
     container.append(summary,
-      h('label', { class: 'pomo-check exam-setting' }, showDaysInput, 'Tage bis zur nächsten Klausur im Chip anzeigen'),
+      h('label', { class: 'pomo-check exam-setting' }, showDaysInput, 'Tage bis zur nächsten Klausur im Dock anzeigen'),
       formSlot, listEl);
 
-    // Chip in der Kopfleiste und Zusammenfassung oben in der Ansicht
-    function updateChip() {
+    // Dock-Button und Zusammenfassung oben in der Ansicht
+    function updateDock() {
       const next = nextExam(exams);
       if (!next) {
         summary.textContent = 'Keine anstehende Klausur.';
@@ -169,7 +167,7 @@ export default {
       const hint = soon ? ` – hervorgehoben, weil es weniger als ${HIGHLIGHT_DAYS} Tage sind` : '';
       summary.textContent = `${text}${hint}.`;
       summary.classList.toggle('is-soon', soon);
-      ctx.setBadge(showDays ? chipCountdown(next.term) : '', { highlight: soon, title: `${text}${hint}` });
+      ctx.setBadge(showDays ? dockCountdown(next.term) : '', { highlight: soon, title: `${text}${hint}` });
     }
     ctx.addAction('+ Klausur', () => { editing = editing === 'new' ? null : 'new'; draw(); }, 'Klausur hinzufügen');
 
@@ -341,7 +339,7 @@ export default {
     };
 
     function draw() {
-      updateChip();
+      updateDock();
       formSlot.replaceChildren(...(editing === 'new' ? [examForm({})] : []));
       const key = e => { const { term } = statusOf(e); return `${term.date}T${term.time || '99'}`; };
       const all = Object.values(exams).filter(e => !e.deleted).sort((a, b) => key(a).localeCompare(key(b)));
@@ -372,10 +370,10 @@ export default {
     // Änderungen anderer Geräte bzw. Widgets übernehmen (Fächer, Lernzeit)
     const isEditing = () => editing && container.contains(document.activeElement);
     ctx.store.subscribe('list', v => { exams = v ?? {}; if (!isEditing()) draw(); });
-    ctx.store.subscribe('showDays', v => { showDays = v ?? true; showDaysInput.checked = showDays; updateChip(); });
+    ctx.store.subscribe('showDays', v => { showDays = v ?? true; showDaysInput.checked = showDays; updateDock(); });
     ctx.onCleanup(subscribe(SUBJECTS_KEY, v => { subjects = v ?? {}; if (!isEditing()) draw(); }));
     ctx.onCleanup(subscribe(SESSIONS_KEY, v => { sessions = v ?? {}; if (!isEditing()) draw(); }));
-    ctx.every(60 * 1000, () => { if (!isEditing()) draw(); else updateChip(); });
+    ctx.every(60 * 1000, () => { if (!isEditing()) draw(); else updateDock(); });
 
     draw();
   },

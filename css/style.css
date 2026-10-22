@@ -957,118 +957,19 @@ input[type="number"] {
 .exam-head { flex-wrap: wrap; }
 .exam-subject { flex: 1 1 140px; }
 
-/* ---------- Seitenleiste (placement: 'drawer') ---------- */
-.drawer-toggle {
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-.drawer-toggle:hover,
-.drawer-toggle[aria-expanded="true"] { border-color: var(--muted); }
-.drawer-toggle-badge {
-  font-size: 0.82rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-  white-space: nowrap;
-}
-.drawer-toggle-badge[hidden] { display: none; }
-
-.drawer { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
-.drawer.is-open { pointer-events: auto; }
-.drawer-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-.drawer.is-open .drawer-backdrop { opacity: 1; }
-.drawer-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(560px, 100vw);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) 12px;
-  background: var(--bg);
-  box-shadow: var(--shadow-pop);
-  transform: translateX(100%);
-  transition: transform 0.25s ease;
-  outline: none;
-}
-.drawer.is-open .drawer-panel { transform: none; }
-.drawer-panel > .card { min-height: 100%; }
-.drawer-close { margin-left: 4px; font-size: 1.3rem; }
-html.drawer-open { overflow: hidden; }
-@media (prefers-reduced-motion: reduce) {
-  .drawer-panel, .drawer-backdrop { transition: none; }
-}
-
 .mensa-hours { margin: 8px 2px 0; font-size: 0.85rem; color: var(--muted); }
 .mensa-hours[hidden] { display: none; }
 .mensa-hours.is-open { color: #3c8a4a; }
 .mensa-hours.is-open::before { content: "● "; }
-
-/* ---------- Einklappbare Kacheln ---------- */
-.card-collapse {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: -4px -6px;
-  padding: 4px 6px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  cursor: pointer;
-}
-.card-collapse:hover { color: var(--text); }
-.card-chevron {
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg) translate(-2px, -2px);
-  transition: transform 0.15s ease;
-}
-.card.is-collapsed .card-chevron { transform: rotate(-45deg); }
-.card.is-collapsed { gap: 0; padding-block: 12px; }
-.card.is-collapsed > .widget-body,
-.card.is-collapsed > .card-status,
-.card.is-collapsed .card-actions { display: none; }
 
 /* Klausuren: 2. Termin */
 .exam-second { display: grid; gap: 8px; padding-left: 10px; border-left: 2px solid var(--border); }
 .exam-second[hidden] { display: none; }
 .exam-second .select { width: auto; flex: 1; }
 
-/* Chip mit Symbol (z. B. Klausuren) */
-.drawer-toggle--icon { padding: 0 12px; gap: 6px; }
-.drawer-toggle-icon { font-size: 1.1rem; line-height: 1; }
-.drawer-toggle.is-highlight { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
-.drawer-toggle.is-highlight .drawer-toggle-badge { color: var(--accent); }
-.drawer-toggle--icon .drawer-toggle-badge { color: var(--text); font-weight: 500; }
-
 .exam-summary { margin: 0 0 8px; font-size: 0.9rem; }
 .exam-summary.is-soon { color: var(--accent); font-weight: 500; }
 .exam-setting { margin-bottom: 12px; font-size: 0.88rem; color: var(--muted); }
-.drawer-toggle--icon.is-highlight .drawer-toggle-badge { color: var(--accent); font-weight: 600; }
 
 /* Klausuren: zwei Termine als kompakter Umschalter */
 .exam-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
@@ -1101,3 +1002,74 @@ html.drawer-open { overflow: hidden; }
   color: var(--muted);
   border: 1px solid var(--border);
 }
+
+/* ---------- Dock (Leiste unter der Uhr) ---------- */
+.dock {
+  max-width: 1240px;
+  margin: calc(-1 * clamp(8px, 2vw, 24px)) auto clamp(20px, 3vw, 32px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dock-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.dock-btn:hover { border-color: var(--muted); color: var(--text); }
+.dock-btn[aria-pressed="true"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+.dock-icon { font-size: 1.15rem; line-height: 1; }
+.dock-badge {
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+.dock-badge[hidden] { display: none; }
+.dock-btn.is-highlight { border-color: var(--accent); }
+.dock-btn.is-highlight .dock-badge { color: var(--accent); }
+
+/* Kacheln mit Dock: Schließen-Button, Ein-/Ausblenden */
+.card[hidden] { display: none; }
+.card-close { margin-left: 2px; font-size: 1.3rem; }
+.card.is-entering { animation: card-in 0.18s ease-out; }
+.card.is-leaving { animation: card-out 0.14s ease-in forwards; }
+@keyframes card-in { from { opacity: 0; transform: translateY(6px) scale(0.985); } }
+@keyframes card-out { to { opacity: 0; transform: translateY(6px) scale(0.985); } }
+@media (prefers-reduced-motion: reduce) {
+  .card.is-entering, .card.is-leaving { animation: none; }
+}
+
+.grid-empty {
+  max-width: 1240px;
+  margin: 8px auto 0;
+  padding: 40px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--muted);
+}
+.grid-empty[hidden] { display: none; }
+
+@media (max-width: 480px) {
+  .dock { gap: 6px; }
+  .dock-btn { padding: 0 12px 0 10px; font-size: 0.9rem; }
+}
+.card-header { flex-wrap: wrap; }
+.card-header .card-actions { flex-wrap: wrap; justify-content: flex-end; }

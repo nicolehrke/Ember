@@ -14,7 +14,8 @@ const slots = {
   hero: document.getElementById('slot-hero'),
   header: document.getElementById('slot-header'),
   grid: document.getElementById('grid'),
-  drawer: document.getElementById('drawers'),
+  dock: document.getElementById('dock'),
+  empty: document.getElementById('grid-empty'),
 };
 for (const widget of widgets) mountWidget(slots, widget);
 

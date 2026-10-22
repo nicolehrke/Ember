@@ -52,7 +52,8 @@ const rangeFmt = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'nume
 export default {
   id: 'study',
   title: 'Lernzeit',
-  placement: 'drawer',
+  size: 'wide',
+  dock: { icon: '⏱', label: 'Lernzeit' },
 
   async render(container, ctx) {
     let subjects = await ctx.store.load('subjects', {});

@@ -35,9 +35,13 @@ examples/               Beispiel-Stundenplan (.ics) mit erfundenen Terminen
 proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 ```
 
-## Kacheln ein- und ausklappen
+## Bedienung: Dock
 
-Jede Kachel lässt sich über ihren Titel (mit Pfeil) ein- und ausklappen. Beim ersten Öffnen ist nur die Mensa ausgeklappt (`startOpen: true` im Widget), alle anderen sind eingeklappt. Danach merkt sich jedes Gerät den Zustand in `local/layout` (wird nicht synchronisiert).
+Lernzeit, Klausuren, Gewohnheiten und Mensa sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Buttons unter der Uhr (oder über das × in der Kachel). Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, erscheint ein kurzer Hinweis.
+
+Die Dock-Buttons zeigen auch bei geschlossener Kachel ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben), Gewohnheiten „2/3 heute“.
+
+Welche Kacheln offen sind, speichert jedes Gerät für sich in `local/open` (wird nicht synchronisiert), damit Mac und iPad unterschiedliche Ansichten haben können. Ohne gespeicherten Zustand sind Mensa und Gewohnheiten offen.
 
 ## Neues Widget hinzufügen
 
@@ -48,12 +52,11 @@ Jede Kachel lässt sich über ihren Titel (mit Pfeil) ein- und ausklappen. Beim 
      id: 'mein-widget',          // eindeutig, dient auch als Speicher-Namespace
      title: 'Mein Widget',
      icon: '✨',                  // optional
-     placement: 'grid',          // optional: 'grid' (Kachel), 'hero' (Kopfbereich links),
-                                 //           'header' (kompakt oben rechts) oder
-                                 //           'drawer' (Seitenleiste, Chip oben öffnet sie;
-                                 //           mit icon zeigt der Chip das Symbol statt des Titels)
+     placement: 'grid',          // optional: 'grid' (Kachel), 'hero' (Kopfbereich links)
+                                 //           oder 'header' (kompakt oben rechts)
      size: 'normal',             // optional, nur für 'grid': 'normal' oder 'wide' (2 Spalten)
-     startOpen: false,           // optional, nur für 'grid': beim ersten Öffnen ausgeklappt?
+     dock: { icon: '✨', label: 'Mein Widget' }, // optional: Button im Dock öffnet/schließt die Kachel
+     defaultOpen: false,         // optional, mit dock: ohne gespeicherten Zustand geöffnet?
      refreshInterval: 60_000,    // optional, in ms: ruft regelmäßig refresh() auf
 
      async render(container, ctx) {
@@ -80,7 +83,7 @@ Das `ctx`-Objekt bietet:
 | `ctx.setStatus(text)` | Fußzeile der Kachel (z. B. „Aktualisiert 13:20 Uhr“), bei kompakten Widgets als Tooltip |
 | `ctx.refresh()` | Widget neu laden |
 | `ctx.root` | Das äußere Element des Widgets |
-| `ctx.setBadge(text, { highlight, title })` | Kleiner Status neben dem Kacheltitel (z. B. laufender Timer), leer = ausgeblendet; bei Seitenleisten-Widgets auch im Chip der Kopfleiste, `highlight` hebt den Chip hervor, `title` ist sein Tooltip |
+| `ctx.setBadge(text, { highlight, title })` | Kleiner Status (z. B. laufender Timer), leer = ausgeblendet. Bei Dock-Widgets erscheint er am Dock-Button (auch bei geschlossener Kachel), `highlight` hebt den Button hervor, `title` ist sein Tooltip; sonst neben dem Kacheltitel |
 | `ctx.onCleanup(fn)` | Funktion, die beim Neuaufbau des Widgets aufgerufen wird (z. B. Abo auf Schlüssel eines anderen Widgets abmelden) |
 
 Wirft `render()` oder `refresh()` einen Fehler, zeigt das Widget eine Fehlermeldung mit „Erneut versuchen“ (kompakte Widgets als kleinen Button), und der Rest der Seite läuft weiter. Für Netzwerkzugriffe `fetchJSON()` aus `js/core/http.js` verwenden.
@@ -98,7 +101,7 @@ Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleib
 
 ## Lernzeit-Tracker
 
-Die Lernzeit liegt in einer Seitenleiste: Der Button „Lernzeit“ oben rechts öffnet sie (schließen mit ×, Esc oder Klick daneben). Läuft ein Timer, zeigt der Button den Stand, z. B. „● 12:34 Fokus“.
+Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer, zeigt der Button den Stand, z. B. „● 12:34 Fokus“ – auch bei geschlossener Kachel.
 
 - Start, Pause/Weiter und Stopp mit Fachauswahl. Die Startzeit wird gespeichert, der Timer läuft also über Neuladen und Geräte hinweg weiter. Pausen werden von der Lernzeit abgezogen und am Eintrag gespeichert. Sitzungen unter einer Minute werden verworfen.
 - Löschen per Doppelklick-Bestätigung am Button („×“ → „Löschen?“) statt Browser-Dialog, weil `confirm()` in eingebetteten Ansichten oft blockiert ist.
@@ -123,7 +126,7 @@ Die Lernzeit liegt in einer Seitenleiste: Der Button „Lernzeit“ oben rechts 
 
 ## Klausuren
 
-Die Klausuren sitzen als Chip „🎓“ oben in der Kopfleiste; ein Klick öffnet sie als Seitenleiste (schließen mit ×, Esc oder Klick daneben). Oben in der Ansicht steht die nächste Klausur als Text, darunter die Einstellung „Tage bis zur nächsten Klausur im Chip anzeigen“ (gilt auf allen Geräten, wird synchronisiert; Standard: an). Ist sie an, zeigt der Chip z. B. „🎓 107 Tage“, unter einer Woche „4 Tage 18 Std“. Als nächste Klausur zählt der früheste noch anstehende Termin über alle Fächer – bei entschiedenem Termin nur der gewählte, bei „noch nicht entschieden“ der frühere noch anstehende. In den letzten 14 Tagen davor ist der Chip farbig hervorgehoben; die Begründung steht im Tooltip und (für das iPad) oben in der Ansicht. Datumsangaben erscheinen als Tag.Monat.Jahr.
+Die Klausuren öffnest du über den Dock-Button „🎓 Klausuren“. Oben in der Kachel steht die nächste Klausur als Text, darunter die Einstellung „Tage bis zur nächsten Klausur im Dock anzeigen“ (gilt auf allen Geräten, wird synchronisiert; Standard: an). Ist sie an, zeigt der Dock-Button z. B. „107 Tage“, unter einer Woche „4 Tage 18 Std“. Als nächste Klausur zählt der früheste noch anstehende Termin über alle Fächer – bei entschiedenem Termin nur der gewählte, bei „noch nicht entschieden“ der frühere noch anstehende. In den letzten 14 Tagen davor ist der Dock-Button farbig hervorgehoben; die Begründung steht im Tooltip und (für das iPad) oben in der Kachel. Datumsangaben erscheinen als Tag.Monat.Jahr.
 
 - Über „+ Klausur“ anlegen: Fach (aus derselben Fächerliste wie die Lernzeit; „+ Neues Fach …“ legt es dort direkt mit an), Datum, optional Uhrzeit, Ort und Notiz. Ein Datum in der Vergangenheit wird nur nach „Trotzdem speichern“ übernommen.
 - **2. Termin:** Optional lässt sich ein zweiter Termin eintragen (muss nach dem ersten liegen). Beide Termine erscheinen als zwei kleine Felder (`1. 06.02.2027, 09:00` | `2. 25.03.2027, 09:00`). Antippen legt fest, welchen Termin du schreibst (farbig gefüllt); erneutes Antippen hebt die Wahl auf. Solange nichts gewählt ist, steht „offen“ neben dem Fach, und Countdown und Sortierung richten sich nach dem nächsten anstehenden Termin; danach zählt nur der gewählte. Vergangene Termine sind durchgestrichen und nicht wählbar. Ort und Restzeit je Termin stehen im Tooltip bzw. werden vorgelesen.

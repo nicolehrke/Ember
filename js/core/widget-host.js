@@ -3,12 +3,13 @@
 //
 // Widget-Schnittstelle (siehe README):
 //   id, title, icon?, refreshInterval? (ms)
-//   placement? – 'grid' (Kachel, Standard), 'hero' (großer Kopfbereich links),
-//                'header' (kompakt oben rechts, ohne Kachel) oder
-//                'drawer' (Kachel in einer Seitenleiste, geöffnet über einen Button oben)
-//   size?      – nur für 'grid': 'normal' | 'wide'
-//   startOpen? – nur für 'grid': true = beim ersten Öffnen ausgeklappt (sonst eingeklappt);
-//                danach merkt sich jedes Gerät den Zustand in 'local/layout'
+//   placement?   – 'grid' (Kachel, Standard), 'hero' (großer Kopfbereich links)
+//                  oder 'header' (kompakt oben rechts, ohne Kachel)
+//   size?        – nur für 'grid': 'normal' | 'wide'
+//   dock?        – nur für 'grid': { icon, label } – Button in der Dock-Leiste öffnet/schließt
+//                  die Kachel; geschlossene Kacheln laufen unsichtbar weiter (z. B. Timer)
+//   defaultOpen? – mit dock: ohne gespeicherten Zustand geöffnet? Der Zustand wird pro
+//                  Gerät in 'local/open' gespeichert (nicht synchronisiert).
 //   render(container, ctx)   – baut das Widget auf (einmalig bzw. nach Fehler)
 //   refresh?(container, ctx) – aktualisiert Daten; fehlt es, wird render() erneut aufgerufen
 import { scope, load, save } from './storage.js';
@@ -22,37 +23,29 @@ export function mountWidget(slots, widget) {
   let actions = null;
   let status = null;
   let badge = null;
-  let chip = null; // Button in der Kopfleiste bei placement 'drawer'
+  let dock = null; // { button, badge } bei Widgets mit dock
 
   if (compact) {
     root = h('div', { class: `slot-widget slot-widget--${placement}`, 'data-widget': widget.id }, body);
   } else {
     actions = h('div', { class: 'card-actions' });
     status = h('p', { class: 'card-status', hidden: true });
-    badge = h('span', { class: 'card-badge', hidden: true });
-    const close = placement === 'drawer'
-      ? h('button', { class: 'icon-btn icon-btn--sm drawer-close', type: 'button', 'aria-label': `${widget.title} schließen`, title: 'Schließen (Esc)' }, '×')
+    // Dock-Widgets zeigen ihren Status am Dock-Button, nicht zusätzlich im Kachelkopf.
+    badge = widget.dock ? null : h('span', { class: 'card-badge', hidden: true });
+    const close = widget.dock
+      ? h('button', { class: 'icon-btn icon-btn--sm card-close', type: 'button', 'aria-label': `${widget.title} schließen`, title: 'Schließen' }, '×')
       : null;
-    const titleText = [widget.icon, widget.title].filter(Boolean).join(' ');
-    // In Kacheln ist der Titel zugleich der Schalter zum Ein-/Ausklappen.
-    const title = placement === 'grid'
-      ? h('h2', { class: 'card-title' },
-        h('button', { class: 'card-collapse', type: 'button', 'aria-expanded': 'true', 'aria-controls': `card-body-${widget.id}` },
-          h('span', { class: 'card-chevron', 'aria-hidden': 'true' }), titleText))
-      : h('h2', { class: 'card-title' }, titleText);
-    body.id = `card-body-${widget.id}`;
-    root = h('article', { class: `card card--${widget.size ?? 'normal'}`, 'data-widget': widget.id },
+    root = h('article', { class: `card card--${widget.size ?? 'normal'}`, id: `card-${widget.id}`, 'data-widget': widget.id },
       h('header', { class: 'card-header' },
-        title,
+        h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
         badge,
         actions,
         close),
       body,
       status);
-    if (placement === 'drawer') chip = mountDrawer(slots, widget, root, close);
-    if (placement === 'grid') setupCollapse(widget, root, title.querySelector('.card-collapse'));
+    if (widget.dock) dock = mountDockButton(slots, widget, root, close);
   }
-  if (placement !== 'drawer') (slots[placement] ?? slots.grid).append(root);
+  (slots[placement] ?? slots.grid).append(root);
 
   let failed = false;
   let running = false;
@@ -91,21 +84,21 @@ export function mountWidget(slots, widget) {
       cleanups.push(() => clearInterval(id));
       return id;
     },
-    // Fußzeile der Kachel; bei kompakten Widgets als Tooltip.
     // Kleiner Status neben dem Kacheltitel (z. B. laufender Timer); leer = ausgeblendet.
-    // Bei Seitenleisten-Widgets erscheint er auch im Chip der Kopfleiste;
-    // highlight hebt den Chip farbig hervor, title ist dessen Tooltip.
+    // Bei Dock-Widgets erscheint er stattdessen am Dock-Button – auch bei geschlossener Kachel;
+    // highlight hebt den Button farbig hervor, title ist sein Tooltip.
     setBadge(text, { highlight = false, title = null } = {}) {
-      for (const el of [badge, chip?.badge].filter(Boolean)) {
+      for (const el of [badge, dock?.badge].filter(Boolean)) {
         if (el.textContent !== (text ?? '')) el.textContent = text ?? '';
         el.hidden = !text;
       }
-      if (chip) {
-        chip.toggle.classList.toggle('is-highlight', highlight);
-        chip.toggle.title = title ?? widget.title;
-        chip.toggle.setAttribute('aria-label', text ? `${widget.title}: ${text}` : widget.title);
+      if (dock) {
+        dock.button.classList.toggle('is-highlight', highlight);
+        dock.button.title = title ?? widget.dock.label;
+        dock.button.setAttribute('aria-label', text ? `${widget.dock.label}: ${text}` : widget.dock.label);
       }
     },
+    // Fußzeile der Kachel; bei kompakten Widgets als Tooltip.
     setStatus(text) {
       if (status) {
         status.textContent = text ?? '';
@@ -165,55 +158,83 @@ export function mountWidget(slots, widget) {
   }
 }
 
-// Ein-/Ausklappen einer Kachel; Zustand pro Gerät in 'local/layout'.
-const LAYOUT_KEY = 'local/layout';
-function setupCollapse(widget, card, button) {
-  const apply = collapsed => {
-    card.classList.toggle('is-collapsed', collapsed);
-    button.setAttribute('aria-expanded', String(!collapsed));
-    button.title = collapsed ? `${widget.title} ausklappen` : `${widget.title} einklappen`;
-  };
-  apply(!widget.startOpen);
-  load(LAYOUT_KEY, {}).then(layout => {
-    if (typeof layout?.[widget.id] === 'boolean') apply(layout[widget.id]);
-  });
-  button.addEventListener('click', async () => {
-    const collapsed = !card.classList.contains('is-collapsed');
-    apply(collapsed);
-    const layout = await load(LAYOUT_KEY, {});
-    await save(LAYOUT_KEY, { ...layout, [widget.id]: collapsed });
-  });
+// ---------- Dock ----------
+// Welche Dock-Kacheln offen sind, gilt pro Gerät (Mac und iPad dürfen sich unterscheiden).
+const OPEN_KEY = 'local/open';
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let openStatePromise = null;
+const openState = () => (openStatePromise ??= load(OPEN_KEY, {}));
+
+// Leerer Zustand im Hauptbereich, wenn keine Kachel sichtbar ist.
+function updateEmpty(slots) {
+  if (slots.empty) slots.empty.hidden = Boolean(slots.grid.querySelector('.card:not([hidden])'));
 }
 
-// Seitenleiste von rechts plus Chip in der Kopfleiste; gibt { toggle, badge } des Chips zurück.
-// Mit widget.icon zeigt der Chip das Symbol, sonst den Titel.
-function mountDrawer(slots, widget, card, close) {
-  const toggleBadge = h('span', { class: 'drawer-toggle-badge', hidden: true });
-  const toggle = h('button', {
-    class: `drawer-toggle${widget.icon ? ' drawer-toggle--icon' : ''}`, type: 'button',
-    'aria-expanded': 'false', 'aria-controls': `drawer-${widget.id}`, 'aria-label': widget.title, title: widget.title,
-  }, widget.icon ? h('span', { class: 'drawer-toggle-icon', 'aria-hidden': 'true' }, widget.icon) : h('span', {}, widget.title), toggleBadge);
-  const backdrop = h('div', { class: 'drawer-backdrop' });
-  const panel = h('div', { class: 'drawer-panel', role: 'dialog', 'aria-label': widget.title, tabindex: -1 }, card);
-  const drawer = h('aside', { class: 'drawer', id: `drawer-${widget.id}`, inert: true }, backdrop, panel);
-  slots.header.append(toggle);
-  (slots.drawer ?? document.body).append(drawer);
+// Button in der Dock-Leiste; gibt { button, badge } zurück.
+function mountDockButton(slots, widget, card, close) {
+  const dockBadge = h('span', { class: 'dock-badge', hidden: true });
+  const button = h('button', {
+    class: 'dock-btn', type: 'button', 'aria-pressed': 'false', 'aria-controls': card.id,
+    'aria-label': widget.dock.label, title: widget.dock.label,
+  },
+  h('span', { class: 'dock-icon', 'aria-hidden': 'true' }, widget.dock.icon),
+  h('span', { class: 'dock-label' }, widget.dock.label),
+  dockBadge);
+  slots.dock.append(button);
 
-  const setOpen = open => {
-    drawer.classList.toggle('is-open', open);
-    drawer.inert = !open;
-    toggle.setAttribute('aria-expanded', String(open));
-    document.documentElement.classList.toggle('drawer-open', open);
-    if (open) panel.focus({ preventScroll: true });
-    else if (drawer.contains(document.activeElement)) toggle.focus();
+  const setOpen = (open, { animate = true, persist = true } = {}) => {
+    button.setAttribute('aria-pressed', String(open));
+    card.classList.remove('is-entering', 'is-leaving');
+    const motion = animate && !reducedMotion.matches;
+
+    if (open) {
+      card.hidden = false;
+      if (motion) {
+        card.classList.add('is-entering');
+        card.addEventListener('animationend', () => card.classList.remove('is-entering'), { once: true });
+      }
+      if (animate) card.scrollIntoView({ block: 'nearest', behavior: motion ? 'smooth' : 'auto' });
+    } else if (motion && !card.hidden) {
+      card.classList.add('is-leaving');
+      // Nach der Animation verstecken – spätestens nach 250 ms, falls das Ende-Signal
+      // ausbleibt (z. B. gedrosselter Hintergrund-Tab).
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        card.classList.remove('is-leaving');
+        // Wurde währenddessen wieder geöffnet, nicht verstecken.
+        if (button.getAttribute('aria-pressed') === 'false') card.hidden = true;
+        updateEmpty(slots);
+      };
+      card.addEventListener('animationend', finish, { once: true });
+      setTimeout(finish, 250);
+    } else {
+      card.hidden = true;
+    }
+    updateEmpty(slots);
+
+    if (persist) {
+      openState().then(state => {
+        state[widget.id] = open;
+        save(OPEN_KEY, state);
+      });
+    }
   };
-  toggle.addEventListener('click', () => setOpen(!drawer.classList.contains('is-open')));
-  close.addEventListener('click', () => setOpen(false));
-  backdrop.addEventListener('click', () => setOpen(false));
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && drawer.classList.contains('is-open')) setOpen(false);
+
+  // Startzustand: gespeichert, sonst defaultOpen
+  card.hidden = !widget.defaultOpen;
+  openState().then(state => {
+    const open = typeof state[widget.id] === 'boolean' ? state[widget.id] : Boolean(widget.defaultOpen);
+    setOpen(open, { animate: false, persist: false });
   });
-  return { toggle, badge: toggleBadge };
+
+  button.addEventListener('click', () => setOpen(button.getAttribute('aria-pressed') !== 'true'));
+  close.addEventListener('click', () => {
+    setOpen(false);
+    button.focus();
+  });
+  return { button, badge: dockBadge };
 }
 
 function showError(body, err, retry, compactTitle) {

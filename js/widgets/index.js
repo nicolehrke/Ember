@@ -12,8 +12,9 @@ export default [
   clock,
   timetable,
   weather,
-  mensa,
+  // Kacheln mit Dock-Button, in der Reihenfolge des Docks
+  study,
   exams,
   habits,
-  study,
+  mensa,
 ];

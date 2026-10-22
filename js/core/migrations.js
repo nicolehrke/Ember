@@ -6,4 +6,6 @@ export async function runMigrations() {
   const theme = await load('theme');
   if (theme && !(await load('local/theme'))) await save('local/theme', theme);
   await purge(key => key === 'theme' || key === 'weather.cache' || /^mensa\.(days|meals)\./.test(key));
+  // Dock statt Einklappen: der alte Auf/Zu-Zustand der Kacheln wird nicht mehr gebraucht.
+  await purge(key => key === 'local/layout');
 }
