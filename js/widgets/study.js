@@ -3,11 +3,12 @@
 //
 // Datenmodell (über ctx.store, wird synchronisiert):
 //   subjects: { [id]: { id, name, color, updatedAt, deleted? } }
-//   sessions: { [id]: { id, subjectId, start, end, updatedAt, deleted? } }  (Zeiten in ms)
-//   running:  { start, subjectId } | null
+//   sessions: { [id]: { id, subjectId, start, end, pause?, updatedAt, deleted? } }
+//             (Zeiten in ms; Lernzeit = end - start - pause)
+//   running:  { start, subjectId, pausedAt?, pausedTotal? } | null
 // Gelöschte Einträge bleiben als { deleted: true } stehen, damit der Sync
 // das Löschen an andere Geräte weitergeben kann.
-import { h } from '../core/dom.js';
+import { h, confirmButton } from '../core/dom.js';
 
 const COLORS = ['#c8553d', '#3c82cf', '#3c8a4a', '#8b62d0', '#d99a1f', '#2a9d8f', '#d65b8f', '#6b7a8f'];
 const NO_SUBJECT = { id: '', name: 'Ohne Fach', color: '#a3a097' };
@@ -34,6 +35,10 @@ function duration(ms) {
   if (min < 60) return `${min} min`;
   return `${Math.floor(min / 60)}:${pad(min % 60)} h`;
 }
+
+// Reine Lernzeit eines Eintrags bzw. des laufenden Timers (ohne Pausen).
+const net = s => s.end - s.start - (s.pause ?? 0);
+const elapsed = r => (r.pausedAt ?? Date.now()) - r.start - (r.pausedTotal ?? 0);
 
 const weekdayFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'short' });
 const dayFmt = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'numeric' });
@@ -66,7 +71,9 @@ export default {
     const subjectOf = id => subjects[id] ?? NO_SUBJECT;
     const activeSessions = () => {
       const list = Object.values(sessions).filter(s => !s.deleted);
-      if (running) list.push({ id: 'running', subjectId: running.subjectId, start: running.start, end: Date.now(), live: true });
+      if (running) {
+        list.push({ id: 'running', subjectId: running.subjectId, start: running.start, end: running.pausedAt ?? Date.now(), pause: running.pausedTotal ?? 0, live: true });
+      }
       return list;
     };
 
@@ -74,6 +81,7 @@ export default {
     const subjectSelect = h('select', { class: 'select', 'aria-label': 'Fach' });
     const timeEl = h('span', { class: 'study-time' });
     const startStop = h('button', { class: 'study-btn', type: 'button' });
+    const pauseButton = h('button', { class: 'study-btn study-btn--secondary', type: 'button', hidden: true });
     const totals = h('p', { class: 'study-totals' });
     const weekLabel = h('span', { class: 'study-week' });
     const prevWeek = h('button', { class: 'icon-btn icon-btn--sm', type: 'button', 'aria-label': 'Vorherige Woche' }, '‹');
@@ -92,7 +100,7 @@ export default {
       dataPanel,
       h('div', { class: 'study-timer' },
         h('div', { class: 'study-timer-main' }, subjectSelect, timeEl),
-        startStop),
+        h('div', { class: 'study-buttons' }, pauseButton, startStop)),
       totals,
       h('div', { class: 'study-weekbar' }, prevWeek, weekLabel, nextWeek),
       chart,
@@ -119,10 +127,14 @@ export default {
 
     // ---------- Timer ----------
     const drawTimer = () => {
-      timeEl.textContent = clock(running ? Date.now() - running.start : 0);
+      const paused = Boolean(running?.pausedAt);
+      timeEl.textContent = clock(running ? elapsed(running) : 0);
       startStop.textContent = running ? 'Stopp' : 'Start';
       startStop.classList.toggle('is-running', Boolean(running));
-      container.classList.toggle('is-running', Boolean(running));
+      pauseButton.hidden = !running;
+      pauseButton.textContent = paused ? 'Weiter' : 'Pause';
+      container.classList.toggle('is-running', Boolean(running) && !paused);
+      container.classList.toggle('is-paused', paused);
     };
 
     const drawSubjectSelect = () => {
@@ -135,15 +147,26 @@ export default {
 
     startStop.addEventListener('click', async () => {
       if (running) {
-        const session = { id: uid(), subjectId: running.subjectId, start: running.start, end: Date.now() };
+        // Beim Stoppen während einer Pause endet der Eintrag mit Beginn der Pause.
+        const session = { id: uid(), subjectId: running.subjectId, start: running.start, end: running.pausedAt ?? Date.now(), pause: running.pausedTotal ?? 0 };
         running = null;
-        if (session.end - session.start >= MIN_SESSION) await putSession(session);
+        if (net(session) >= MIN_SESSION) await putSession(session);
         else flash = { text: 'Unter einer Minute – nicht gespeichert.', until: Date.now() + 5000 };
         await ctx.store.save('running', null);
       } else {
         running = { start: Date.now(), subjectId: subjectSelect.value };
         await ctx.store.save('running', running);
       }
+      drawAll();
+    });
+
+    pauseButton.addEventListener('click', async () => {
+      if (!running) return;
+      const now = Date.now();
+      running = running.pausedAt
+        ? { ...running, pausedAt: null, pausedTotal: (running.pausedTotal ?? 0) + now - running.pausedAt }
+        : { ...running, pausedAt: now };
+      await ctx.store.save('running', running);
       drawAll();
     });
 
@@ -161,7 +184,7 @@ export default {
     const drawStats = () => {
       const list = activeSessions();
       const today = dayStart(Date.now());
-      const sum = (from, to) => list.filter(s => s.start >= from && s.start < to).reduce((t, s) => t + (s.end - s.start), 0);
+      const sum = (from, to) => list.filter(s => s.start >= from && s.start < to).reduce((t, s) => t + net(s), 0);
 
       totals.replaceChildren(...[
         h('span', {}, 'Heute ', h('strong', {}, duration(sum(today, today + DAY)))),
@@ -181,7 +204,7 @@ export default {
         const from = addDays(week, i);
         const bySubject = new Map();
         for (const s of inWeek.filter(s => s.start >= from && s.start < addDays(from, 1))) {
-          bySubject.set(s.subjectId, (bySubject.get(s.subjectId) ?? 0) + (s.end - s.start));
+          bySubject.set(s.subjectId, (bySubject.get(s.subjectId) ?? 0) + net(s));
         }
         return { from, bySubject, total: [...bySubject.values()].reduce((a, b) => a + b, 0) };
       });
@@ -199,7 +222,7 @@ export default {
 
       // Legende: Summe pro Fach in der gewählten Woche.
       const perSubject = new Map();
-      for (const s of inWeek) perSubject.set(s.subjectId, (perSubject.get(s.subjectId) ?? 0) + (s.end - s.start));
+      for (const s of inWeek) perSubject.set(s.subjectId, (perSubject.get(s.subjectId) ?? 0) + net(s));
       legend.replaceChildren(...[...perSubject].sort((a, b) => b[1] - a[1]).map(([id, ms]) =>
         h('li', {}, h('span', { class: 'dot', style: `background:${subjectOf(id).color}` }), subjectOf(id).name, h('span', { class: 'muted' }, duration(ms)))));
 
@@ -215,11 +238,12 @@ export default {
         h('option', { value: '' }, NO_SUBJECT.name),
         activeSubjects().map(s => h('option', { value: s.id }, s.name)));
       subject.value = subjects[session.subjectId] && !subjects[session.subjectId].deleted ? session.subjectId : '';
+      const pause = h('input', { type: 'number', min: 0, step: 1, inputmode: 'numeric', value: Math.round((session.pause ?? 0) / 60000), 'aria-label': 'Pause in Minuten' });
       const error = h('p', { class: 'settings-error' });
 
       const form = h('form', { class: 'study-form' },
         h('div', { class: 'study-form-row' }, date, from, h('span', { class: 'muted' }, '–'), to),
-        subject,
+        h('div', { class: 'study-form-row' }, subject, h('label', { class: 'study-pause-field' }, 'Pause', pause, 'min')),
         error,
         h('div', { class: 'study-form-row' },
           h('button', { class: 'chip chip--accent', type: 'submit' }, 'Speichern'),
@@ -236,7 +260,9 @@ export default {
           error.textContent = overnight ? 'Das Ende liegt vor dem Beginn – bitte die Uhrzeiten prüfen.' : 'Ein Eintrag darf höchstens 16 Stunden lang sein.';
           return;
         }
-        await putSession({ ...session, id: session.id ?? uid(), subjectId: subject.value, start, end });
+        const pauseMs = Math.max(0, Number(pause.value) || 0) * 60000;
+        if (pauseMs >= end - start) return void (error.textContent = 'Die Pause ist länger als der ganze Eintrag.');
+        await putSession({ ...session, id: session.id ?? uid(), subjectId: subject.value, start, end, pause: pauseMs });
         editing = null;
         week = weekStart(start);
         drawStats();
@@ -268,18 +294,14 @@ export default {
           const subject = subjectOf(s.subjectId);
           return h('li', { class: 'study-entry' },
             h('span', { class: 'dot', style: `background:${subject.color}` }),
-            h('span', { class: 'study-entry-time' }, `${hhmm(s.start)}–${hhmm(s.end)}`),
             h('span', { class: 'study-entry-subject' }, subject.name),
-            h('span', { class: 'study-entry-dur muted' }, duration(s.end - s.start)),
-            h('button', { class: 'icon-btn icon-btn--xs', type: 'button', title: 'Bearbeiten', 'aria-label': 'Eintrag bearbeiten', onclick: () => { editing = s.id; drawStats(); } }, '✎'),
-            h('button', {
-              class: 'icon-btn icon-btn--xs', type: 'button', title: 'Löschen', 'aria-label': 'Eintrag löschen',
-              onclick: async () => {
-                if (!confirm(`Eintrag ${hhmm(s.start)}–${hhmm(s.end)} (${subject.name}) löschen?`)) return;
-                await putSession({ ...s, deleted: true });
-                drawStats();
-              },
-            }, '×'));
+            h('span', { class: 'study-entry-meta muted', title: s.pause ? `${duration(s.pause)} Pause abgezogen` : null },
+              `${hhmm(s.start)}–${hhmm(s.end)} · ${duration(net(s))}${s.pause ? ` (${duration(s.pause)} Pause)` : ''}`),
+            h('button', { class: 'icon-btn icon-btn--xs study-entry-edit', type: 'button', title: 'Bearbeiten', 'aria-label': 'Eintrag bearbeiten', onclick: () => { editing = s.id; drawStats(); } }, '✎'),
+            confirmButton({ class: 'icon-btn icon-btn--xs study-entry-del', title: 'Löschen', 'aria-label': 'Eintrag löschen' }, '×', 'Löschen?', async () => {
+              await putSession({ ...s, deleted: true });
+              drawStats();
+            }));
         })));
       }
       entries.replaceChildren(...rows);
@@ -317,15 +339,11 @@ export default {
               },
             }),
             rename,
-            h('button', {
-              class: 'icon-btn icon-btn--xs', type: 'button', title: 'Fach löschen', 'aria-label': `${s.name} löschen`,
-              onclick: async () => {
-                if (!confirm(`Fach „${s.name}“ löschen? Bestehende Einträge bleiben erhalten.`)) return;
-                await putSubject({ ...s, deleted: true });
-                drawAll();
-                drawSubjects();
-              },
-            }, '×'));
+            confirmButton({ class: 'icon-btn icon-btn--xs', title: 'Fach löschen – Einträge bleiben erhalten', 'aria-label': `${s.name} löschen` }, '×', 'Löschen?', async () => {
+              await putSubject({ ...s, deleted: true });
+              drawAll();
+              drawSubjects();
+            }));
         })),
         add);
     };

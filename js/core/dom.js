@@ -12,6 +12,32 @@ export function h(tag, attrs = {}, ...children) {
   return el;
 }
 
+// Button mit Bestätigung im Button selbst: erster Klick zeigt `question`,
+// zweiter Klick (innerhalb weniger Sekunden) führt `action` aus.
+// Ersetzt confirm(), das in eingebetteten Ansichten oft blockiert ist.
+export function confirmButton(attrs, label, question, action) {
+  let timer = null;
+  const button = h('button', { type: 'button', ...attrs }, label);
+  const reset = () => {
+    clearTimeout(timer);
+    timer = null;
+    button.textContent = label;
+    button.classList.remove('is-confirming');
+  };
+  button.addEventListener('click', async () => {
+    if (!timer) {
+      button.textContent = question;
+      button.classList.add('is-confirming');
+      timer = setTimeout(reset, 4000);
+      return;
+    }
+    reset();
+    await action();
+  });
+  button.addEventListener('blur', reset);
+  return button;
+}
+
 // Escapen für Texte, die per innerHTML eingesetzt werden (z. B. API-Daten).
 const ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ENTITIES[c]);

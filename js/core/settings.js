@@ -1,5 +1,5 @@
 // Einstellungs-Panel (⚙︎ oben rechts): Sync über GitHub Gist verbinden/trennen.
-import { h } from './dom.js';
+import { h, confirmButton } from './dom.js';
 import { popover } from './popover.js';
 import { connect, disconnect, syncNow, onStatus, getConfig } from './sync.js';
 
@@ -66,12 +66,8 @@ export function initSettings(root) {
       h('div', { class: 'settings-actions' },
         h('button', { class: 'chip', type: 'button', onclick: () => syncNow() }, 'Jetzt synchronisieren'),
         h('a', { class: 'chip', href: config.gistUrl, target: '_blank', rel: 'noopener' }, 'Gist öffnen'),
-        h('button', {
-          class: 'chip', type: 'button',
-          onclick: async () => {
-            if (confirm('Sync auf diesem Gerät trennen? Die Daten bleiben hier und im Gist erhalten.')) await disconnect();
-          },
-        }, 'Trennen')));
+        confirmButton({ class: 'chip', title: 'Die Daten bleiben auf diesem Gerät und im Gist erhalten.' },
+          'Trennen', 'Wirklich trennen?', disconnect)));
   };
 
   onStatus(next => {
