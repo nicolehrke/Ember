@@ -29,6 +29,9 @@ js/core/http.js         fetchJSON()/fetchText() mit Timeout und verständlichen 
 js/core/ical.js         Schlanker iCal-Parser inkl. Wiederholungen und Zeitzonen
 js/core/dom.js          Kleine DOM-Helfer (h(), esc(), confirmButton())
 js/core/title.js        Tab-Titel aus Teilen (Lernzeit, Musik)
+js/core/alerts.js       Töne (Web Audio), Benachrichtigungen, Bildschirm anlassen
+js/core/ringer.js       Klingel-Fenster für Timer und Wecker
+js/core/alert-settings.js  Bereich „Timer & Wecker“ in ⚙︎
 js/spotify/             Spotify: Anmeldung (PKCE), Web API, Player-Gerät „Ember“
 assets/spotify/         Offizielles Spotify-Logo (unverändert, aus dem Logo-Paket von developer.spotify.com)
 js/core/backup.js       Gemeinsamer Export/Import aller Sammlungen
@@ -108,12 +111,20 @@ Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer,
 
 - Start, Pause/Weiter und Stopp mit Fachauswahl. Die Startzeit wird gespeichert, der Timer läuft also über Neuladen und Geräte hinweg weiter. Pausen werden von der Lernzeit abgezogen und am Eintrag gespeichert. Sitzungen unter einer Minute werden verworfen.
 - Löschen per Doppelklick-Bestätigung am Button („×“ → „Löschen?“) statt Browser-Dialog, weil `confirm()` in eingebetteten Ansichten oft blockiert ist.
-- **Pomodoro-Modus:** Umschalter „Frei“/„Pomodoro“ über dem Timer (wird gespeichert). Fokus, kurze und lange Pause sowie die Runden bis zur langen Pause sind unter „Pomodoro-Einstellungen“ einstellbar (Standard 25/5/15 min, 4 Runden), ebenso der automatische Start der nächsten Phase. Bedienung: Start, Pause/Weiter, Überspringen, Abbrechen.
+- **Pomodoro-Modus:** Umschalter „Frei“/„Pomodoro“/„Timer“ über dem Timer (wird gespeichert). Freier Timer und Pomodoro laufen nicht gleichzeitig; Timer laufen unabhängig davon. Fokus, kurze und lange Pause sowie die Runden bis zur langen Pause sind unter „Pomodoro-Einstellungen“ einstellbar (Standard 25/5/15 min, 4 Runden), ebenso der automatische Start der nächsten Phase. Bedienung: Start, Pause/Weiter, Überspringen, Abbrechen.
   - Gerechnet wird nur mit gespeicherten Zeitstempeln (Start, Ende, Pausen) – die Restzeit stimmt daher auch nach Neuladen, in Hintergrund-Tabs und auf dem iPad.
   - Nur Fokusphasen werden als normale Lerneinträge gespeichert (Pausen nicht); abgebrochene oder übersprungene Fokusphasen zählen mit der tatsächlich gelaufenen Zeit. Sie erscheinen in derselben Wochenübersicht.
   - Lief eine Fokusphase ab, während das Dashboard nicht offen war, fragt das Widget, ob sie gezählt werden soll.
   - Ton und Benachrichtigung beim Phasenwechsel sind standardmäßig aus und werden pro Gerät eingeschaltet (Benachrichtigungen erst nach Zustimmung im Browser). Beides funktioniert nur, solange das Dashboard geöffnet ist; auf dem iPad gibt es Benachrichtigungen nur für Web-Apps auf dem Home-Bildschirm. Den Stand zeigen immer der Tab-Titel (z. B. „🍅 12:34 Fokus“) und der Kopf der Lernzeit-Kachel.
-  - Daten: `study.pomodoro` (aktuelle Phase) und `study.pomodoroSettings` werden synchronisiert, `local/cache/study.pomodoroAlerts` (Ton/Benachrichtigung) bleibt auf dem Gerät.
+  - Daten: `study.pomodoro` (aktuelle Phase) und `study.pomodoroSettings` werden synchronisiert, `local/cache/study.pomodoroAlerts` (Ton/Benachrichtigung) bleibt auf dem Gerät. Klang und Lautstärke kommen aus ⚙︎ → „Timer & Wecker“.
+- **Timer:** Countdown mit Stunden/Minuten/Sekunden oder Schnellbuttons (5/10/15/30 min), optional mit Name. Bis zu 5 Timer gleichzeitig, jeweils mit Pause/Fortsetzen, Zurücksetzen und ×.
+  - Gespeichert wird das Ende als Zeitstempel und alle 250 ms sowie beim Zurückkehren in den Tab geprüft. Nach dem Neuladen laufen Timer weiter; lief einer ab, während Ember zu war, steht dort „abgelaufen um HH:MM“ statt zu klingeln.
+  - Beim Ablaufen: Fenster mit „Stopp“ und „+1 Minute“, Ton in Schleife (beginnt leise), blinkender Tab-Titel, Benachrichtigung nur nach Zustimmung. Läuft Musik in Ember, pausiert sie und spielt nach „Stopp“ weiter.
+  - Timer zählen nicht als Lernzeit. Der Haken „als Lernzeit“ legt beim Ablaufen (oder beim Zurücksetzen/Entfernen mit der bis dahin gelaufenen Zeit) denselben Eintrag an wie der freie Timer, mit dem gewählten Fach.
+  - Der Dock-Button zeigt den nächsten Auslöser, z. B. „⏱ 4:32“ (Timer) oder „● 12:34 Fokus“ (Pomodoro); sonst den freien Timer. Der Tab-Titel ebenso, abschaltbar in ⚙︎.
+  - **Wichtig:** Timer klingeln nur, solange Ember in einem Tab geöffnet ist. Browser erlauben Ton erst nach einem Klick – nach dem Neuladen genügt ein Klick irgendwo in Ember; bis dahin zeigt die Kachel einen Hinweis.
+  - Daten: `local/timers`, nur auf diesem Gerät, nicht im Sync und nicht im Export – ein laufender Countdown ist an den offenen Tab gebunden und auf einem anderen Gerät oder nach einem Import nicht sinnvoll.
+- **⚙︎ → Timer & Wecker** (pro Gerät): Klang (Glocke, Marimba, Sanfter Puls, Klangschale), Lautstärke, Testton, Benachrichtigungen (mit Hinweis, was der Browser kann – auf iPad/iPhone nur als Home-Bildschirm-App ab iOS 16.4), „Bildschirm anlassen“ (Screen Wake Lock, solange ein Timer läuft) und Tab-Titel.
 - Fächer anlegen, umbenennen, Farbe wechseln und löschen über „Fächer“.
 - Übersicht über heute und die Woche, Balkendiagramm Mo–So nach Fach, Wochen mit ‹ › durchblättern.
 - Unter „Einträge dieser Woche“ Einträge bearbeiten, löschen oder nachtragen.

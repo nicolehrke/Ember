@@ -1327,3 +1327,96 @@ a.music-title:hover { text-decoration: underline; }
 .card.is-mini .music-controls { gap: 4px; flex-wrap: nowrap; }
 .card.is-mini .music-btn--main { width: 44px; height: 44px; }
 .card.is-mini .music-now > p { grid-column: 1 / -1; }
+
+/* ---------- Klingel-Overlay (Timer & Wecker) ---------- */
+.ring-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+  animation: card-in 0.2s ease-out;
+}
+.ring-overlay[hidden] { display: none; }
+.ring-box {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 28px 24px;
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-pop);
+  text-align: center;
+}
+.ring-icon { font-size: 3rem; animation: ring-wiggle 1s ease-in-out infinite; }
+@keyframes ring-wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+@media (prefers-reduced-motion: reduce) { .ring-icon { animation: none; } }
+.ring-title { margin: 0; font-size: 1.5rem; }
+.ring-text { margin: 0; color: var(--muted); }
+.ring-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; margin-top: 6px; }
+.ring-btn {
+  flex: 1 1 140px;
+  min-height: 56px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ring-btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ring-more { margin: 0; font-size: 0.85rem; color: var(--muted); }
+
+/* ---------- Timer (Lernzeit-Kachel) ---------- */
+.timers[hidden], .sound-hint[hidden], .study-timer-main .select[hidden] { display: none; }
+.timers { display: grid; gap: 14px; }
+.timer-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.timer-list:empty { display: none; }
+.timer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.timer-info { display: grid; gap: 2px; min-width: 0; }
+.timer-name { font-size: 0.85rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer-tag { margin-left: 6px; }
+.timer-time { font-size: 1.6rem; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.timer-row.is-paused .timer-time { color: var(--muted); }
+.timer-row.is-done .timer-time { font-size: 1rem; color: var(--accent); }
+.timer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.timer-form { display: grid; gap: 10px; }
+.timer-hms { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.timer-hms label { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 0.85rem; }
+.timer-hms input[type="number"] { width: 64px; min-height: 44px; text-align: center; }
+.timer-hms input[type="text"] { flex: 1 1 160px; min-height: 44px; }
+.timer-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.timer-study { font-size: 0.85rem; color: var(--muted); }
+.sound-hint {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .segment { min-height: 44px; }
+}

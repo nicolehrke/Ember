@@ -6,11 +6,13 @@
 //   sessions: { [id]: { id, subjectId, start, end, pause?, updatedAt, deleted? } }
 //             (Zeiten in ms; Lernzeit = end - start - pause)
 //   running:  { start, subjectId, pausedAt?, pausedTotal? } | null
-//   mode:     'free' | 'pomodoro'   (Pomodoro-Daten siehe pomodoro.js)
+//   mode:     'free' | 'pomodoro' | 'timer'   (siehe pomodoro.js, timers.js)
 // Gelöschte Einträge bleiben als { deleted: true } stehen, damit der Sync
 // das Löschen an andere Geräte weitergeben kann.
 import { h, confirmButton } from '../core/dom.js';
 import { createPomodoro } from './pomodoro.js';
+import { createTimers } from './timers.js';
+import { getAlertSettings, onAlerts, isAudioReady, unlockAudio, keepScreenOn } from '../core/alerts.js';
 import { exportBackup, importBackup } from '../core/backup.js';
 import { setTitlePart } from '../core/title.js';
 
@@ -86,13 +88,22 @@ export default {
       saveFocus: async session => { await putSession(session); },
       onChange: () => { drawTimer(); if (!editing) drawStats(); },
     });
+    const timers = createTimers({
+      getSubjectId: () => subjectSelect.value,
+      saveSession: async session => { await putSession(session); },
+      onChange: () => { drawTimer(); if (!editing) drawStats(); },
+    });
+    // Browser spielen Ton erst nach einem Klick – solange etwas läuft, darauf hinweisen.
+    const soundHint = h('button', { class: 'sound-hint', type: 'button', hidden: true, onclick: () => unlockAudio() },
+      '🔇 Ton ist gesperrt – hier tippen, damit Timer hörbar klingeln');
     const timeEl = h('span', { class: 'study-time' });
     const startStop = h('button', { class: 'study-btn', type: 'button' });
     const pauseButton = h('button', { class: 'study-btn study-btn--secondary', type: 'button', hidden: true });
     const freeButtons = h('div', { class: 'study-buttons' }, pauseButton, startStop);
     const modeFree = h('button', { class: 'segment', type: 'button' }, 'Frei');
     const modePomodoro = h('button', { class: 'segment', type: 'button' }, 'Pomodoro');
-    const modeSwitch = h('div', { class: 'segmented', role: 'group', 'aria-label': 'Timer-Modus' }, modeFree, modePomodoro);
+    const modeTimer = h('button', { class: 'segment', type: 'button' }, 'Timer');
+    const modeSwitch = h('div', { class: 'segmented', role: 'group', 'aria-label': 'Timer-Modus' }, modeFree, modePomodoro, modeTimer);
     const totals = h('p', { class: 'study-totals' });
     const weekLabel = h('span', { class: 'study-week' });
     const prevWeek = h('button', { class: 'icon-btn icon-btn--sm', type: 'button', 'aria-label': 'Vorherige Woche' }, '‹');
@@ -110,10 +121,12 @@ export default {
       subjectsPanel,
       dataPanel,
       modeSwitch,
+      soundHint,
       h('div', { class: 'study-timer' },
         h('div', { class: 'study-timer-main' }, subjectSelect, timeEl),
         freeButtons),
       pomodoro.element,
+      timers.element,
       totals,
       h('div', { class: 'study-weekbar' }, prevWeek, weekLabel, nextWeek),
       chart,
@@ -141,20 +154,29 @@ export default {
     // ---------- Timer ----------
     const drawTimer = () => {
       const paused = Boolean(running?.pausedAt);
-      const pomodoroMode = mode === 'pomodoro';
-      const busy = Boolean(running) || pomodoro.isBusy();
-      modeFree.setAttribute('aria-pressed', String(!pomodoroMode));
-      modePomodoro.setAttribute('aria-pressed', String(pomodoroMode));
-      modeFree.disabled = modePomodoro.disabled = busy;
-      modeSwitch.title = busy ? 'Erst den laufenden Timer beenden, dann den Modus wechseln.' : '';
-      timeEl.hidden = freeButtons.hidden = pomodoroMode;
-      pomodoro.element.hidden = !pomodoroMode;
+      for (const [button, id] of [[modeFree, 'free'], [modePomodoro, 'pomodoro'], [modeTimer, 'timer']]) button.setAttribute('aria-pressed', String(mode === id));
+      // Freier Timer und Pomodoro schließen sich aus; Timer laufen unabhängig davon.
+      modeFree.disabled = pomodoro.isBusy() && mode !== 'free';
+      modePomodoro.disabled = Boolean(running) && mode !== 'pomodoro';
+      modeSwitch.title = modeFree.disabled || modePomodoro.disabled ? 'Freier Timer und Pomodoro laufen nicht gleichzeitig – erst den laufenden beenden.' : '';
+      timeEl.hidden = freeButtons.hidden = mode !== 'free';
+      subjectSelect.hidden = mode === 'timer' && !running && !pomodoro.isBusy();
+      pomodoro.element.hidden = mode !== 'pomodoro';
+      timers.element.hidden = mode !== 'timer';
 
-      // Stand im Kachelkopf und im Tab-Titel
+      // Stand im Kachelkopf (Dock) und im Tab-Titel: der nächste Auslöser zuerst
+      // (Pomodoro-Phase oder Timer), sonst der freie Timer.
       const pomo = pomodoro.status();
+      const timer = timers.next();
       const free = running ? `${paused ? '⏸' : '●'} ${clock(elapsed(running))}${paused ? ' pausiert' : ''}` : null;
-      ctx.setBadge(pomo?.badge ?? free);
-      setTitlePart('study', pomo?.title ?? free);
+      const first = [pomo, timer].filter(Boolean).sort((a, b) => (a.ms ?? Infinity) - (b.ms ?? Infinity))[0];
+      ctx.setBadge(first?.badge ?? free, { title: first?.title ?? free ?? undefined });
+      const showTimerTitle = getAlertSettings().tabTitle !== false;
+      setTitlePart('study', first === timer && !showTimerTitle ? (pomo?.title ?? free) : (first?.title ?? free));
+
+      const active = Boolean(running && !paused) || Boolean(pomo && pomo.ms !== Infinity) || timers.hasRunning();
+      soundHint.hidden = isAudioReady() || !(timers.hasRunning() || (pomo && pomo.ms !== Infinity));
+      keepScreenOn(active);
 
       timeEl.textContent = clock(running ? elapsed(running) : 0);
       startStop.textContent = running ? 'Stopp' : 'Start';
@@ -415,13 +437,16 @@ export default {
 
     // ---------- Modus ----------
     const setMode = async next => {
-      if (running || pomodoro.isBusy() || next === mode) return;
+      if (next === mode) return;
+      if ((next === 'free' && pomodoro.isBusy()) || (next === 'pomodoro' && running)) return;
       mode = next;
       await ctx.store.save('mode', mode);
       drawTimer();
     };
     modeFree.addEventListener('click', () => setMode('free'));
     modePomodoro.addEventListener('click', () => setMode('pomodoro'));
+    modeTimer.addEventListener('click', () => setMode('timer'));
+    ctx.onCleanup(onAlerts(() => drawTimer()));
 
     // ---------- Zusammenspiel ----------
     const drawAll = () => {
@@ -440,12 +465,16 @@ export default {
     ctx.store.subscribe('mode', v => { mode = v ?? 'free'; drawTimer(); });
 
     await pomodoro.init();
+    await timers.init();
     drawAll();
     await pomodoro.tick();
+    await timers.tick();
     ctx.every(1000, async () => {
       await pomodoro.tick();
       drawTimer();
     });
+    // Timer öfter prüfen, damit sie pünktlich klingeln
+    ctx.every(250, () => timers.tick());
     // Bei laufendem Timer Übersicht regelmäßig nachziehen; um Mitternacht Tageswechsel.
     ctx.every(30 * 1000, () => { if ((running || pomodoro.liveSession()) && !editing) drawStats(); });
     let today = dayStart(Date.now());

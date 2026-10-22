@@ -14,6 +14,8 @@
 //          | { phase, round, subjectId, waiting: true }      nächste Phase wartet auf Start
 //          | { …Phase, expired: true }                       Fokus lief ab, als niemand zusah
 import { h, confirmButton } from '../core/dom.js';
+// Ton und Benachrichtigung kommen aus dem gemeinsamen Modul (auch für Timer und Wecker)
+import { unlockAudio, playOnce, showNotification, requestNotifications, notificationCapability } from '../core/alerts.js';
 
 export const DEFAULT_SETTINGS = { focus: 25, short: 5, long: 15, rounds: 4, autoStart: false };
 const LIMITS = { focus: [1, 180], short: [1, 60], long: [1, 90], rounds: [1, 12] };
@@ -38,34 +40,6 @@ const hhmm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.
 
 const isActive = s => Boolean(s && !s.waiting && !s.expired);
 const remaining = (s, now = Date.now()) => Math.max(0, s.end - (s.pausedAt ?? now));
-
-// Sanfter Zwei-Ton-Gong über Web Audio (keine Audiodatei nötig).
-let audio = null;
-function unlockAudio() {
-  const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return;
-  try {
-    audio ??= new AC();
-    audio.resume?.();
-  } catch { /* ohne Ton weiter */ }
-}
-function chime() {
-  if (!audio) unlockAudio();
-  if (!audio) return;
-  const t = audio.currentTime;
-  for (const [freq, delay] of [[660, 0], [880, 0.2]]) {
-    const osc = audio.createOscillator();
-    const gain = audio.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.0001, t + delay);
-    gain.gain.exponentialRampToValueAtTime(0.12, t + delay + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.9);
-    osc.connect(gain).connect(audio.destination);
-    osc.start(t + delay);
-    osc.stop(t + delay + 1);
-  }
-}
 
 export function createPomodoro({ ctx, getSubjectId, saveFocus, onChange }) {
   let settings = { ...DEFAULT_SETTINGS };
@@ -133,10 +107,8 @@ export function createPomodoro({ ctx, getSubjectId, saveFocus, onChange }) {
     const next = nextOf(s);
     const title = s.phase === 'focus' ? 'Fokus beendet' : 'Pause vorbei';
     const body = `Als Nächstes: ${PHASES[next.phase].label}${settings.autoStart ? ' (startet automatisch)' : ''}.`;
-    if (alerts.sound) chime();
-    if (alerts.notify && 'Notification' in window && Notification.permission === 'granted') {
-      try { new Notification(title, { body, tag: 'pomodoro' }); } catch { /* z. B. iPad ohne Unterstützung */ }
-    }
+    if (alerts.sound) playOnce();
+    if (alerts.notify) showNotification(title, body, 'pomodoro');
   };
 
   // ---------- Bedienung ----------
@@ -241,7 +213,7 @@ export function createPomodoro({ ctx, getSubjectId, saveFocus, onChange }) {
     const p = PHASES[state.phase];
     const rest = countdown(remaining(state));
     const label = state.pausedAt ? `${p.label} (pausiert)` : p.label;
-    return { badge: `${p.badge} ${rest} ${label}`, title: `${p.icon} ${rest} ${label}` };
+    return { badge: `${p.badge} ${rest} ${label}`, title: `${p.icon} ${rest} ${label}`, ms: state.pausedAt ? Infinity : remaining(state) };
   };
 
   // Laufende Fokusphase für die Live-Summen der Übersicht.
@@ -293,7 +265,7 @@ export function createPomodoro({ ctx, getSubjectId, saveFocus, onChange }) {
         alerts = { ...alerts, sound: input.checked };
         if (input.checked) {
           unlockAudio();
-          chime(); // Probeton
+          playOnce(); // Probeton
         }
         await ctx.cache.save('pomodoroAlerts', alerts);
       }),
@@ -305,11 +277,10 @@ export function createPomodoro({ ctx, getSubjectId, saveFocus, onChange }) {
         }
         if (!notifySupported) {
           input.checked = false;
-          notifyInfo.textContent = 'Dieser Browser unterstützt keine Benachrichtigungen.';
+          notifyInfo.textContent = notificationCapability().text;
           return;
         }
-        const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
-        if (permission !== 'granted') {
+        if (!(await requestNotifications())) {
           input.checked = false;
           notifyInfo.textContent = 'Benachrichtigungen wurden nicht erlaubt. Das lässt sich in den Website-Einstellungen des Browsers ändern.';
           return;
@@ -320,7 +291,7 @@ export function createPomodoro({ ctx, getSubjectId, saveFocus, onChange }) {
       }),
       notifyInfo,
       h('p', { class: 'muted small' },
-        'Ton und Benachrichtigung kommen nur, solange das Dashboard geöffnet ist. Auf dem iPad (Safari) gibt es Benachrichtigungen nur für Web-Apps auf dem Home-Bildschirm, und Töne können stummgeschaltet sein. Den Stand siehst du immer im Tab-Titel und im Kopf dieser Kachel.'));
+        'Ton und Benachrichtigung kommen nur, solange Ember geöffnet ist (Klang und Lautstärke unter ⚙︎ → Timer & Wecker). Auf dem iPad (Safari) gibt es Benachrichtigungen nur für Web-Apps auf dem Home-Bildschirm, und Töne können stummgeschaltet sein. Den Stand siehst du immer im Tab-Titel und im Kopf dieser Kachel.'));
   };
 
   // ---------- Start ----------

@@ -3,6 +3,7 @@ import { h, confirmButton } from './dom.js';
 import { popover } from './popover.js';
 import { connect, disconnect, syncNow, onStatus, getConfig } from './sync.js';
 import { spotifySettings } from '../spotify/settings-section.js';
+import { alertSettings } from './alert-settings.js';
 
 const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Ember-Sync';
 const timeFmt = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -22,6 +23,7 @@ export function initSettings(root) {
   const panel = h('div', { class: 'popover', id: 'settings-panel', hidden: true },
     h('h2', { class: 'card-title' }, 'Sync zwischen Geräten'),
     body,
+    alertSettings(),
     spotifySettings());
   root.append(button, panel);
   popover(button, panel, root);

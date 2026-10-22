@@ -5,9 +5,17 @@ import { initSync } from './core/sync.js';
 import { handleRedirect as handleSpotifyRedirect, refreshStatus as refreshSpotifyStatus } from './spotify/auth.js';
 import { mountWidget } from './core/widget-host.js';
 import { setTitleBase } from './core/title.js';
+import { setMusicHook } from './core/ringer.js';
+import { getPlayerState, togglePlay } from './spotify/player.js';
 import widgets from './widgets/index.js';
 
 await runMigrations();
+// Klingelnde Timer/Wecker pausieren laufende Musik in Ember und setzen sie danach fort
+setMusicHook({
+  isPlaying: () => Boolean(getPlayerState().track && !getPlayerState().paused),
+  pause: () => togglePlay(),
+  resume: () => (getPlayerState().paused ? togglePlay() : undefined),
+});
 // Rückkehr von der Spotify-Anmeldung: Code eintauschen und URL bereinigen
 await handleSpotifyRedirect();
 await refreshSpotifyStatus();
