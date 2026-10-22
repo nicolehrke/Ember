@@ -28,6 +28,9 @@ js/core/popover.js      Aufklapp-Panels (Wetter, Stundenplan, Einstellungen)
 js/core/http.js         fetchJSON()/fetchText() mit Timeout und verständlichen Fehlern
 js/core/ical.js         Schlanker iCal-Parser inkl. Wiederholungen und Zeitzonen
 js/core/dom.js          Kleine DOM-Helfer (h(), esc(), confirmButton())
+js/core/title.js        Tab-Titel aus Teilen (Lernzeit, Musik)
+js/spotify/             Spotify: Anmeldung (PKCE), Web API, Player-Gerät „Ember“
+assets/spotify/         Offizielles Spotify-Logo (unverändert, aus dem Logo-Paket von developer.spotify.com)
 js/core/backup.js       Gemeinsamer Export/Import aller Sammlungen
 js/widgets/index.js     Zentrale Widget-Liste
 js/widgets/*.js         Ein Modul pro Widget
@@ -37,7 +40,7 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Klausuren, Gewohnheiten, Mensa, Einkaufsliste und Notizen sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Symbol-Buttons unter der Uhr (⏱ Lernzeit, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa, 🛒 Einkaufsliste, 📝 Notizen; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
+Lernzeit, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen und Musik sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit vier Symbol-Buttons unter der Uhr (⏱ Lernzeit, 🎓 Klausuren, ✅ Gewohnheiten, 🍽 Mensa, 🛒 Einkaufsliste, 📝 Notizen, 🎵 Musik; der Name steht im Tooltip), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein und ordnen sich in der Reihenfolge des Docks an; sind alle geschlossen, bleibt der Hauptbereich leer.
 
 Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben). Gewohnheiten und Mensa zeigen nur ihr Symbol.
 
@@ -132,6 +135,36 @@ Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer,
 - **Handy-Ansicht:** `…/?nur=einkauf` lädt nur die Einkaufsliste in voller Breite, ohne Kopfbereich und Dock (Link „Nur-Einkaufsliste-Ansicht“ unten in der Kachel). Auf iPhone/iPad in Safari öffnen → Teilen → „Zum Home-Bildschirm“ ergibt ein eigenes Symbol. Alle Bedienflächen sind mindestens 44 px groß, Eingabefelder nutzen 16 px Schrift (kein Zoom beim Antippen).
 - **Daten und Sync:** `shopping.items` mit einem Eintrag pro Artikel (ID, Name, Menge, Status offen/erledigt/gelöscht, Zeitstempel) und `shopping.history` mit einem Eintrag pro Artikelname (Häufigkeit, angeheftet/ausgeblendet). Der Gist-Sync führt beides Eintrag für Eintrag zusammen, pro Artikel gewinnt die jüngste Änderung. Gelöschte Artikel bleiben als Grabstein stehen, damit ein anderes Gerät sie nicht wiederherstellt, und werden nach 30 Tagen aufgeräumt. Beides ist im Export enthalten.
 - **Schlechter Empfang:** Jede Änderung wird sofort lokal gespeichert; der Sync zieht sie nach, sobald wieder Netz da ist. Einschränkungen: Die Seite muss geladen sein (ohne Netz neu laden geht nicht, es gibt noch keinen Offline-Cache für die Dateien), und ein Gerät, das länger als 30 Tage gar nicht synchronisiert hat, könnte gelöschte Artikel wieder einspielen. Zwei gleichzeitige Erhöhungen der Häufigkeit eines Artikels auf zwei Geräten zählen nur einmal.
+
+## Musik (Spotify)
+
+Ember ist selbst ein Spotify-Wiedergabegerät („Ember“, Web Playback SDK). Steuerung in der Musik-Kachel: Play/Pause, Weiter/Zurück, Lautstärke, Fortschrittsbalken mit Spulen, Cover, Titel und Interpret mit Link „PLAY ON SPOTIFY“. Musik wählst du aus deinen Playlists, über die Suche oder „Zuletzt gehört“. Die Wiedergabe läuft weiter, wenn die Kachel geschlossen ist; der Dock-Button zeigt dann den Titel. Abgespielt wird nur nach einem Klick, nie automatisch beim Laden.
+
+**Voraussetzungen:** Spotify Premium (für den Player und, im Development Mode, für den App-Besitzer) und ein Desktop-Browser mit DRM-Unterstützung (Chrome, Firefox, Edge, Safari). In eingebetteten Browsern ohne Widevine startet der Player nicht – Ember zeigt dann einen Hinweis.
+
+### Spotify-App anlegen (einmalig)
+
+1. Auf <https://developer.spotify.com/dashboard> mit deinem Spotify-Konto anmelden und die Developer Terms akzeptieren.
+2. **Create app**: Name z. B. „Ember“ (Spotify verbietet Namen, die „Spotify“ enthalten), kurze Beschreibung.
+3. **Redirect URIs** – genau so eintragen (Spotify vergleicht exakt, inkl. Schrägstrich am Ende):
+   - lokal: `http://127.0.0.1:8000/` (Spotify verbietet `localhost`; deshalb Ember lokal über <http://127.0.0.1:8000/> öffnen)
+   - veröffentlicht: deine GitHub-Pages-Adresse, z. B. `https://<benutzer>.github.io/<repo>/`
+   Die passende Adresse für die gerade geöffnete Seite steht auch in Ember unter ⚙︎ → Spotify (mit „Kopieren“).
+4. Bei **Which API/SDKs are you planning to use?** „Web API“ und „Web Playback SDK“ ankreuzen, speichern.
+5. Die **Client ID** kopieren (kein Client-Secret – Ember braucht und speichert keins).
+6. In Ember: ⚙︎ → Spotify → Client-ID eintragen → **Mit Spotify verbinden** → bei Spotify zustimmen.
+
+**Wichtig zu `127.0.0.1`:** Für den Browser ist `http://127.0.0.1:8000` eine andere Website als `http://localhost:8000` mit eigenem Speicher. Synchronisierte Daten holt der Gist-Sync (Token dort einmal eintragen); Lokales wie Design, Stundenplan-Link und die Spotify-Verbindung richtest du dort neu ein.
+
+### Anmeldung, Daten und Grenzen
+
+- **Anmeldung:** Authorization Code Flow mit PKCE, mit Prüfung des `state`-Parameters; Code und State werden nach der Rückkehr aus der Adresszeile entfernt. Berechtigungen: `streaming`, `user-read-email`, `user-read-private` (vom Player verlangt), `user-read-playback-state`, `user-modify-playback-state`, `playlist-read-private`, `playlist-read-collaborative`, `user-read-recently-played`.
+- **Tokens:** Access-Tokens gelten 1 Stunde und werden automatisch erneuert. Refresh-Tokens gelten laut Spotify 6 Monate ab der Anmeldung; danach (oder wenn Spotify die Anmeldung widerruft) zeigt Ember „Neu verbinden“.
+- **Speicherort:** Client-ID, Tokens, Lautstärke und der Tab-Titel-Schalter liegen nur auf dem jeweiligen Gerät (`local/spotify/…`) – nie im Gist-Sync, nie im Export. Spotify-Inhalte (Titel, Cover, Playlists) werden nicht gespeichert, nur kurz im Arbeitsspeicher der Seite gehalten. **Trennen** (⚙︎ → Spotify) löscht alle Spotify-Daten dieses Geräts und meldet das Gerät „Ember“ ab.
+- **Tab-Titel:** Mit dem Schalter unter ⚙︎ → Spotify zeigt der Tab bei laufender Musik „♪ Titel – Ember“.
+- **Regeln seit Februar 2026 (Development Mode):** Die App funktioniert nur, solange der Besitzer Premium hat, und für höchstens 5 Nutzer. `GET /me` liefert kein `product`/`email` mehr – „kein Premium“ erkennt Ember deshalb über den Player. Die Suche liefert höchstens 10 Treffer pro Typ. Titel einer Playlist darf man nur bei eigenen oder gemeinsamen Playlists auflisten (Ember spielt Playlists als Ganzes, das betrifft es nicht).
+- **Spotify-Designrichtlinien:** Logo (unverändert, mind. 70 px) neben den Inhalten, Cover unverändert mit runden Ecken, Link „PLAY ON SPOTIFY“, höchstens 20 Einträge pro Liste, gesperrte Steuerelemente, wenn Spotify eine Aktion verbietet. **Abweichung auf Wunsch:** Der Fortschrittsbalken erlaubt Spulen; die Richtlinie verlangt einen rein anzeigenden Balken.
+- **Bekannte Einschränkungen:** Auf iPad/iPhone ist das SDK zwar offiziell unterstützt, Ton startet aber nur nach Antippen, und Entwickler berichten von unzuverlässigem Verhalten (nicht getestet; Ember ist für den Mac eingerichtet). Ohne Netz kann Spotify nicht abspielen.
 
 ## Notizen
 

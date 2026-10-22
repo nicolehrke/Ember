@@ -2,7 +2,7 @@
 // Tab-Titel-Schalter. Alles nur auf diesem Gerät gespeichert.
 import { h, confirmButton } from '../core/dom.js';
 import { load, save } from '../core/storage.js';
-import { onAuth, getClientId, setClientId, login, disconnectAll, redirectUri, tokenInfo } from './auth.js';
+import { onAuth, getClientId, setClientId, login, disconnectAll, redirectUri, tokenInfo, originProblem } from './auth.js';
 
 export const SETTINGS_KEY = 'local/spotify/settings';
 const dateFmt = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -33,7 +33,10 @@ export function spotifySettings() {
       await setClientId(idInput.value);
     });
 
-    const uri = redirectUri();
+    // Unter „localhost“ die Adresse anzeigen, die Spotify akzeptiert (127.0.0.1)
+    const uri = originProblem() && location.hostname === 'localhost'
+      ? `http://127.0.0.1:${location.port || 80}${location.pathname}`
+      : redirectUri();
     const copy = h('button', {
       class: 'chip', type: 'button',
       onclick: async () => {
