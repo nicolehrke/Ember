@@ -256,7 +256,8 @@ function mountDockButton(slots, widget, card, close) {
         card.classList.add('is-entering');
         card.addEventListener('animationend', () => card.classList.remove('is-entering'), { once: true });
       }
-      if (animate) card.scrollIntoView({ block: 'nearest', behavior: motion ? 'smooth' : 'auto' });
+      // Erst scrollen, wenn das Raster die Kachel platziert hat (js/core/layout.js rechnet im nächsten Frame)
+      if (animate) requestAnimationFrame(() => requestAnimationFrame(() => card.scrollIntoView({ block: 'nearest', behavior: motion ? 'smooth' : 'auto' })));
     } else if (motion && !card.hidden) {
       card.classList.add('is-leaving');
       // Nach der Animation verstecken – spätestens nach 300 ms, falls das Ende-Signal

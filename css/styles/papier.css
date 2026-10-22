@@ -70,7 +70,7 @@
 .dock-badge { font-family: var(--font); font-size: 13px; }
 
 /* Kacheln: nur eine Linie oben */
-.grid { gap: 30px 38px; }
+.grid { --gap-y: 30px; --gap-x: 38px; }
 .card { border-top: 2px solid var(--text); padding: 10px 0 14px; }
 .card-title { font-style: italic; font-weight: 500; font-size: 17px; letter-spacing: 0; text-transform: none; color: var(--accent); }
 .hero-time, .study-time, .pomo-time, .focus-time, .timer-time, .alarm-time, .wx-temp { font-family: var(--font-display); font-weight: 400; }
