@@ -2,7 +2,9 @@
 // gelernten Zeit pro Fach (aus dem Lernzeit-Widget).
 //
 // Datenmodell (über ctx.store, wird synchronisiert):
-//   list: { [id]: { id, subjectId, date: 'YYYY-MM-DD', time: 'HH:MM' | '', location, note, updatedAt, deleted? } }
+//   list: { [id]: { id, subjectId, date: 'YYYY-MM-DD', time: 'HH:MM' | '', location, note,
+//                   date2?, time2?, location2?, chosen?: null | 1 | 2, updatedAt, deleted? } }
+//         Optionaler 2. Termin: Solange chosen leer ist, werden beide angezeigt.
 // Fächer kommen aus der gemeinsamen Liste 'study.subjects' (Lernzeit-Widget).
 // Datumsrechnung nach Europe/Berlin: Tage zählen als Kalendertage; Stunden
 // werden in Wanduhrzeit gerechnet, damit die Zeitumstellung nichts verschiebt.
@@ -64,6 +66,24 @@ export function countdownFor(exam, t = Date.now()) {
   return { past: false, days, text };
 }
 
+// Termine einer Klausur; ist einer gewählt, zählt nur dieser.
+export function termsOf(exam) {
+  const all = [{ n: 1, date: exam.date, time: exam.time ?? '', location: exam.location ?? '' }];
+  if (exam.date2) all.push({ n: 2, date: exam.date2, time: exam.time2 ?? '', location: exam.location2 ?? '' });
+  if (all.length > 1 && (exam.chosen === 1 || exam.chosen === 2)) return { all, active: [all[exam.chosen - 1]], undecided: false };
+  return { all, active: all, undecided: all.length > 1 };
+}
+
+// Maßgeblich ist der nächste noch anstehende Termin, sonst der letzte.
+export function statusOf(exam, t = Date.now()) {
+  const { active } = termsOf(exam);
+  const upcoming = active.find(term => !countdownFor(term, t).past);
+  const term = upcoming ?? active[active.length - 1];
+  return { term, countdown: countdownFor(term, t), past: !upcoming };
+}
+
+const termLine = term => [dateFmt.format(wall(term.date)), term.time && `${term.time} Uhr`, term.location].filter(Boolean).join(' · ');
+
 export default {
   id: 'exams',
   title: 'Klausuren',
@@ -120,17 +140,37 @@ export default {
       const time = h('input', { type: 'time', value: exam.time ?? '', 'aria-label': 'Uhrzeit (optional)' });
       const location = h('input', { type: 'text', value: exam.location ?? '', placeholder: 'Ort (optional)', 'aria-label': 'Ort', maxlength: 80 });
       const note = h('input', { type: 'text', value: exam.note ?? '', placeholder: 'Notiz (optional)', 'aria-label': 'Notiz', maxlength: 200 });
+      // Optionaler 2. Termin
+      const hasSecond = h('input', { type: 'checkbox', checked: Boolean(exam.date2) });
+      const date2 = h('input', { type: 'date', value: exam.date2 ?? '', min: today, 'aria-label': 'Datum 2. Termin' });
+      const time2 = h('input', { type: 'time', value: exam.time2 ?? '', 'aria-label': 'Uhrzeit 2. Termin (optional)' });
+      const location2 = h('input', { type: 'text', value: exam.location2 ?? '', placeholder: 'Ort 2. Termin (optional)', 'aria-label': 'Ort 2. Termin', maxlength: 80 });
+      const chosen = h('select', { class: 'select', 'aria-label': 'Welchen Termin schreibst du?' },
+        h('option', { value: '' }, 'Noch nicht entschieden'),
+        h('option', { value: '1' }, 'Ich schreibe den 1. Termin'),
+        h('option', { value: '2' }, 'Ich schreibe den 2. Termin'));
+      chosen.value = exam.chosen ? String(exam.chosen) : '';
+      const second = h('div', { class: 'exam-second', hidden: !exam.date2 },
+        h('div', { class: 'study-form-row' }, date2, time2),
+        h('div', { class: 'study-form-row' }, location2),
+        h('div', { class: 'study-form-row' }, chosen));
+      hasSecond.addEventListener('change', () => {
+        second.hidden = !hasSecond.checked;
+        if (hasSecond.checked) date2.focus();
+      });
       const error = h('p', { class: 'settings-error' });
       const submit = h('button', { class: 'chip chip--accent', type: 'submit' }, 'Speichern');
       let pastConfirmed = false;
       // Eine Änderung am Datum hebt die Bestätigung für ein vergangenes Datum wieder auf.
-      date.addEventListener('input', () => { pastConfirmed = false; submit.textContent = 'Speichern'; error.textContent = ''; });
+      for (const input of [date, date2]) input.addEventListener('input', () => { pastConfirmed = false; submit.textContent = 'Speichern'; error.textContent = ''; });
 
       const form = h('form', { class: 'study-form exam-form', novalidate: true },
         h('div', { class: 'study-form-row' }, subject, newSubject),
         h('div', { class: 'study-form-row' }, date, time),
         h('div', { class: 'study-form-row' }, location),
         h('div', { class: 'study-form-row' }, note),
+        h('label', { class: 'pomo-check' }, hasSecond, '2. Termin (noch nicht entschieden, wann ich schreibe)'),
+        second,
         error,
         h('div', { class: 'study-form-row' }, submit,
           h('button', { class: 'chip', type: 'button', onclick: () => { editing = null; draw(); } }, 'Abbrechen')));
@@ -141,8 +181,14 @@ export default {
         if (subjectId === '__new' && !newSubject.value.trim()) return void (error.textContent = 'Bitte einen Namen für das neue Fach eingeben.');
         if (!subjectId) return void (error.textContent = 'Bitte ein Fach wählen.');
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date.value)) return void (error.textContent = 'Bitte ein Datum wählen.');
+        const withSecond = hasSecond.checked;
+        if (withSecond && !/^\d{4}-\d{2}-\d{2}$/.test(date2.value)) return void (error.textContent = 'Bitte ein Datum für den 2. Termin wählen.');
+        if (withSecond && `${date2.value}T${time2.value || '00:00'}` <= `${date.value}T${time.value || '00:00'}`) {
+          return void (error.textContent = 'Der 2. Termin muss nach dem 1. Termin liegen.');
+        }
         // Vergangenes Datum nur nach ausdrücklicher Bestätigung
-        if (date.value < berlinNow().date && !pastConfirmed) {
+        const todayNow = berlinNow().date;
+        if ((date.value < todayNow || (withSecond && date2.value < todayNow)) && !pastConfirmed) {
           pastConfirmed = true;
           error.textContent = 'Das Datum liegt in der Vergangenheit. Trotzdem speichern?';
           submit.textContent = 'Trotzdem speichern';
@@ -156,7 +202,14 @@ export default {
           await save(SUBJECTS_KEY, subjects);
           subjectId = fresh.id;
         }
-        await putExam({ ...exam, id: exam.id ?? uid(), subjectId, date: date.value, time: time.value, location: location.value.trim(), note: note.value.trim() });
+        await putExam({
+          ...exam, id: exam.id ?? uid(), subjectId,
+          date: date.value, time: time.value, location: location.value.trim(), note: note.value.trim(),
+          date2: withSecond ? date2.value : '',
+          time2: withSecond ? time2.value : '',
+          location2: withSecond ? location2.value.trim() : '',
+          chosen: withSecond && chosen.value ? Number(chosen.value) : null,
+        });
         editing = null;
         draw();
       });
@@ -167,15 +220,41 @@ export default {
     const examItem = (exam, { next = false } = {}) => {
       if (editing === exam.id) return h('li', {}, examForm(exam));
       const subject = subjectOf(exam.subjectId);
-      const c = countdownFor(exam);
+      const status = statusOf(exam);
+      const { all, active, undecided } = termsOf(exam);
       const { total, week } = studied(exam.subjectId);
-      return h('li', { class: `exam${next ? ' is-next' : ''}${c.past ? ' is-past' : ''}`, style: `--subject:${subject.color}` },
+      const choose = n => putExam({ ...exam, chosen: n });
+
+      let terms;
+      if (undecided) {
+        // Beide Termine mit eigenem Countdown, darunter die Entscheidung
+        terms = [
+          h('ul', { class: 'exam-terms' }, all.map(term => {
+            const c = countdownFor(term);
+            return h('li', { class: `exam-term${c.past ? ' is-past' : ''}` },
+              h('span', { class: 'exam-term-label' }, `${term.n}. Termin`),
+              h('span', { class: 'exam-term-when muted' }, termLine(term)),
+              h('span', { class: 'exam-term-countdown' }, c.past ? 'vorbei' : c.text));
+          })),
+          h('div', { class: 'exam-decide' },
+            h('span', { class: 'muted' }, 'Noch nicht entschieden'),
+            ...all.filter(term => !countdownFor(term).past).map(term =>
+              h('button', { class: 'chip', type: 'button', onclick: () => choose(term.n) }, `${term.n}. Termin schreiben`))),
+        ];
+      } else {
+        const term = active[0];
+        terms = [h('div', { class: 'exam-meta muted' },
+          all.length > 1 && h('span', { class: 'exam-term-label' }, `${term.n}. Termin · `),
+          termLine(term),
+          all.length > 1 && h('button', { class: 'link-btn', type: 'button', title: 'Entscheidung zurücksetzen', onclick: () => choose(null) }, 'ändern'))];
+      }
+
+      return h('li', { class: `exam${next ? ' is-next' : ''}${status.past ? ' is-past' : ''}`, style: `--subject:${subject.color}` },
         h('div', { class: 'exam-head' },
           h('span', { class: 'dot', style: `background:${subject.color}` }),
           h('span', { class: 'exam-subject' }, subject.name),
-          h('span', { class: 'exam-countdown' }, c.text)),
-        h('div', { class: 'exam-meta muted' },
-          [dateFmt.format(wall(exam.date)), exam.time && `${exam.time} Uhr`, exam.location].filter(Boolean).join(' · ')),
+          h('span', { class: 'exam-countdown' }, status.countdown.text)),
+        ...terms,
         exam.note && h('div', { class: 'exam-note' }, exam.note),
         h('div', { class: 'exam-foot' },
           h('span', { class: 'exam-studied muted' }, `Gelernt: ${duration(total)} gesamt · ${duration(week)} letzte 7 Tage`),
@@ -189,10 +268,10 @@ export default {
 
     function draw() {
       formSlot.replaceChildren(...(editing === 'new' ? [examForm({})] : []));
-      const all = Object.values(exams).filter(e => !e.deleted)
-        .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '99').localeCompare(b.time || '99'));
-      const upcoming = all.filter(e => !countdownFor(e).past);
-      const past = all.filter(e => countdownFor(e).past).reverse();
+      const key = e => { const { term } = statusOf(e); return `${term.date}T${term.time || '99'}`; };
+      const all = Object.values(exams).filter(e => !e.deleted).sort((a, b) => key(a).localeCompare(key(b)));
+      const upcoming = all.filter(e => !statusOf(e).past);
+      const past = all.filter(e => statusOf(e).past).reverse();
 
       if (!all.length) {
         listEl.replaceChildren(...(editing === 'new' ? [] : [h('p', { class: 'exam-empty muted' },

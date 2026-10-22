@@ -35,6 +35,10 @@ examples/               Beispiel-Stundenplan (.ics) mit erfundenen Terminen
 proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 ```
 
+## Kacheln ein- und ausklappen
+
+Jede Kachel lässt sich über ihren Titel (mit Pfeil) ein- und ausklappen. Beim ersten Öffnen ist nur die Mensa ausgeklappt (`startOpen: true` im Widget), alle anderen sind eingeklappt. Danach merkt sich jedes Gerät den Zustand in `local/layout` (wird nicht synchronisiert).
+
 ## Neues Widget hinzufügen
 
 1. Datei `js/widgets/mein-widget.js` anlegen:
@@ -48,6 +52,7 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
                                  //           'header' (kompakt oben rechts) oder
                                  //           'drawer' (Seitenleiste, Button oben öffnet sie)
      size: 'normal',             // optional, nur für 'grid': 'normal' oder 'wide' (2 Spalten)
+     startOpen: false,           // optional, nur für 'grid': beim ersten Öffnen ausgeklappt?
      refreshInterval: 60_000,    // optional, in ms: ruft regelmäßig refresh() auf
 
      async render(container, ctx) {
@@ -118,10 +123,11 @@ Die Lernzeit liegt in einer Seitenleiste: Der Button „Lernzeit“ oben rechts 
 ## Klausuren
 
 - Über „+ Klausur“ anlegen: Fach (aus derselben Fächerliste wie die Lernzeit; „+ Neues Fach …“ legt es dort direkt mit an), Datum, optional Uhrzeit, Ort und Notiz. Ein Datum in der Vergangenheit wird nur nach „Trotzdem speichern“ übernommen.
+- **2. Termin:** Optional lässt sich ein zweiter Termin eintragen (muss nach dem ersten liegen). Solange du dich nicht entschieden hast, zeigt die Klausur beide Termine mit eigenem Countdown und die Knöpfe „1. Termin schreiben“ / „2. Termin schreiben“; Countdown und Sortierung richten sich nach dem nächsten anstehenden Termin. Nach der Entscheidung zählt nur der gewählte Termin; „ändern“ setzt sie zurück. Ist der 1. Termin vorbei und noch nichts entschieden, bleibt die Klausur mit dem 2. Termin in der Liste.
 - Liste nach Datum, die nächste Klausur hervorgehoben. Pro Klausur: Countdown („in 63 Tagen“, unter einer Woche mit Uhrzeit „in 4 Tagen, 18 Std“), Datum, Ort und die für das Fach erfasste Lernzeit gesamt und in den letzten 7 Tagen.
 - Vergangene Klausuren wandern in den eingeklappten Bereich „Vergangen“ und bleiben, bis du sie löschst.
 - Datumsrechnung nach Europe/Berlin: Tage zählen als Kalendertage; Stunden werden in Wanduhrzeit gerechnet, damit die Zeitumstellung nichts verschiebt.
-- Daten: `exams.list` (wird synchronisiert und ist im Export enthalten); Fächer in `study.subjects`.
+- Daten: `exams.list` (wird synchronisiert und ist im Export enthalten; 2. Termin in `date2`/`time2`/`location2`, Entscheidung in `chosen`); Fächer in `study.subjects`.
 
 ## Stundenplan (RWTHonline)
 

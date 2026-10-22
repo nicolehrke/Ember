@@ -140,6 +140,7 @@ function drawMeals(list, meals) {
 export default {
   id: 'mensa',
   title: 'Mensa',
+  startOpen: true,
   refreshInterval: 30 * 60 * 1000,
 
   async render(container, ctx) {

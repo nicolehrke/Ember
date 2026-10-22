@@ -7,9 +7,11 @@
 //                'header' (kompakt oben rechts, ohne Kachel) oder
 //                'drawer' (Kachel in einer Seitenleiste, geöffnet über einen Button oben)
 //   size?      – nur für 'grid': 'normal' | 'wide'
+//   startOpen? – nur für 'grid': true = beim ersten Öffnen ausgeklappt (sonst eingeklappt);
+//                danach merkt sich jedes Gerät den Zustand in 'local/layout'
 //   render(container, ctx)   – baut das Widget auf (einmalig bzw. nach Fehler)
 //   refresh?(container, ctx) – aktualisiert Daten; fehlt es, wird render() erneut aufgerufen
-import { scope } from './storage.js';
+import { scope, load, save } from './storage.js';
 import { h } from './dom.js';
 
 export function mountWidget(slots, widget) {
@@ -31,15 +33,24 @@ export function mountWidget(slots, widget) {
     const close = placement === 'drawer'
       ? h('button', { class: 'icon-btn icon-btn--sm drawer-close', type: 'button', 'aria-label': `${widget.title} schließen`, title: 'Schließen (Esc)' }, '×')
       : null;
+    const titleText = [widget.icon, widget.title].filter(Boolean).join(' ');
+    // In Kacheln ist der Titel zugleich der Schalter zum Ein-/Ausklappen.
+    const title = placement === 'grid'
+      ? h('h2', { class: 'card-title' },
+        h('button', { class: 'card-collapse', type: 'button', 'aria-expanded': 'true', 'aria-controls': `card-body-${widget.id}` },
+          h('span', { class: 'card-chevron', 'aria-hidden': 'true' }), titleText))
+      : h('h2', { class: 'card-title' }, titleText);
+    body.id = `card-body-${widget.id}`;
     root = h('article', { class: `card card--${widget.size ?? 'normal'}`, 'data-widget': widget.id },
       h('header', { class: 'card-header' },
-        h('h2', { class: 'card-title' }, [widget.icon, widget.title].filter(Boolean).join(' ')),
+        title,
         badge,
         actions,
         close),
       body,
       status);
     if (placement === 'drawer') toggleBadge = mountDrawer(slots, widget, root, close);
+    if (placement === 'grid') setupCollapse(widget, root, title.querySelector('.card-collapse'));
   }
   if (placement !== 'drawer') (slots[placement] ?? slots.grid).append(root);
 
@@ -146,6 +157,26 @@ export function mountWidget(slots, widget) {
       if (!document.hidden && Date.now() - lastRun > widget.refreshInterval) ctx.refresh();
     });
   }
+}
+
+// Ein-/Ausklappen einer Kachel; Zustand pro Gerät in 'local/layout'.
+const LAYOUT_KEY = 'local/layout';
+function setupCollapse(widget, card, button) {
+  const apply = collapsed => {
+    card.classList.toggle('is-collapsed', collapsed);
+    button.setAttribute('aria-expanded', String(!collapsed));
+    button.title = collapsed ? `${widget.title} ausklappen` : `${widget.title} einklappen`;
+  };
+  apply(!widget.startOpen);
+  load(LAYOUT_KEY, {}).then(layout => {
+    if (typeof layout?.[widget.id] === 'boolean') apply(layout[widget.id]);
+  });
+  button.addEventListener('click', async () => {
+    const collapsed = !card.classList.contains('is-collapsed');
+    apply(collapsed);
+    const layout = await load(LAYOUT_KEY, {});
+    await save(LAYOUT_KEY, { ...layout, [widget.id]: collapsed });
+  });
 }
 
 // Seitenleiste von rechts plus Button in der Kopfleiste; gibt das Status-Feld des Buttons zurück.
