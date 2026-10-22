@@ -64,6 +64,10 @@ export function mountWidget(slots, widget) {
       actions.append(button);
       return button;
     },
+    // Aufräumen beim Neuaufbau, z. B. für Abos auf Schlüssel anderer Widgets.
+    onCleanup(fn) {
+      cleanups.push(fn);
+    },
     every(ms, fn) {
       const id = setInterval(fn, ms);
       cleanups.push(() => clearInterval(id));

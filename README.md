@@ -73,6 +73,8 @@ Das `ctx`-Objekt bietet:
 | `ctx.setStatus(text)` | Fußzeile der Kachel (z. B. „Aktualisiert 13:20 Uhr“), bei kompakten Widgets als Tooltip |
 | `ctx.refresh()` | Widget neu laden |
 | `ctx.root` | Das äußere Element des Widgets |
+| `ctx.setBadge(text)` | Kleiner Status neben dem Kacheltitel (z. B. laufender Timer), leer = ausgeblendet |
+| `ctx.onCleanup(fn)` | Funktion, die beim Neuaufbau des Widgets aufgerufen wird (z. B. Abo auf Schlüssel eines anderen Widgets abmelden) |
 
 Wirft `render()` oder `refresh()` einen Fehler, zeigt das Widget eine Fehlermeldung mit „Erneut versuchen“ (kompakte Widgets als kleinen Button), und der Rest der Seite läuft weiter. Für Netzwerkzugriffe `fetchJSON()` aus `js/core/http.js` verwenden.
 
@@ -109,6 +111,14 @@ Schlüssel, die mit `local/` beginnen (Caches, Design, Sync-Zugangsdaten), bleib
 - **Ohne Ziel:** Serie und Rekord in Tagen sowie „15× in den letzten 23 Tagen“ (Zeitraum seit dem Anlegen, höchstens 30 Tage).
 - **Mit Wochenziel** (1–7× pro Woche): „2/3 diese Woche“ bzw. „Ziel erreicht“; Serie und Rekord zählen Wochen mit erreichtem Ziel.
 - Daten: `habits.list` (Gewohnheiten) und `habits.days` mit einem Eintrag pro Gewohnheit und Tag (`<id>|JJJJ-MM-TT`, Tagesgrenze Europe/Berlin) inklusive Zeitstempel. Streaks werden immer daraus berechnet. Weil jeder Tag ein eigener Eintrag ist, führt der Gist-Sync Abhaken auf mehreren Geräten tageweise zusammen; auch ein Rückgängigmachen (`done: false`) kommt auf allen Geräten an.
+
+## Klausuren
+
+- Über „+ Klausur“ anlegen: Fach (aus derselben Fächerliste wie die Lernzeit; „+ Neues Fach …“ legt es dort direkt mit an), Datum, optional Uhrzeit, Ort und Notiz. Ein Datum in der Vergangenheit wird nur nach „Trotzdem speichern“ übernommen.
+- Liste nach Datum, die nächste Klausur hervorgehoben. Pro Klausur: Countdown („in 63 Tagen“, unter einer Woche mit Uhrzeit „in 4 Tagen, 18 Std“), Datum, Ort und die für das Fach erfasste Lernzeit gesamt und in den letzten 7 Tagen.
+- Vergangene Klausuren wandern in den eingeklappten Bereich „Vergangen“ und bleiben, bis du sie löschst.
+- Datumsrechnung nach Europe/Berlin: Tage zählen als Kalendertage; Stunden werden in Wanduhrzeit gerechnet, damit die Zeitumstellung nichts verschiebt.
+- Daten: `exams.list` (wird synchronisiert und ist im Export enthalten); Fächer in `study.subjects`.
 
 ## Stundenplan (RWTHonline)
 

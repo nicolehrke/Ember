@@ -6,12 +6,14 @@ import weather from './weather.js';
 import mensa from './mensa.js';
 import study from './study.js';
 import habits from './habits.js';
+import exams from './exams.js';
 
 export default [
   clock,
   timetable,
   weather,
   mensa,
+  exams,
   habits,
   study,
 ];

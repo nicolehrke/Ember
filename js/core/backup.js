@@ -10,6 +10,7 @@ export const COLLECTIONS = [
   { key: 'study.sessions', one: 'Lerneintrag', many: 'Lerneinträge' },
   { key: 'habits.list', one: 'Gewohnheit', many: 'Gewohnheiten' },
   { key: 'habits.days', one: 'Gewohnheits-Tag', many: 'Gewohnheits-Tage' },
+  { key: 'exams.list', one: 'Klausur', many: 'Klausuren' },
 ];
 
 // Einträge zweier Sammlungen zusammenführen (neuere Änderung gewinnt).

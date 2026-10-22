@@ -920,3 +920,39 @@ input[type="number"] {
 .habit-archive .habit-manage-list { margin-top: 8px; }
 .habit-archive .habit-manage-list > li { display: flex; border: 0; padding: 0; }
 .habit-archived-name { flex: 1; }
+
+/* ---------- Widget: Klausuren ---------- */
+.exam-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.exam {
+  --subject: var(--accent);
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.exam.is-next {
+  border-color: color-mix(in srgb, var(--subject) 45%, var(--border));
+  background: color-mix(in srgb, var(--subject) 8%, transparent);
+  padding: 14px;
+}
+.exam.is-past { opacity: 0.6; }
+.exam-head { display: flex; align-items: center; gap: 8px; }
+.exam-subject { font-weight: 600; flex: 1; min-width: 0; overflow-wrap: break-word; }
+.exam-countdown { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.exam.is-next .exam-countdown { font-size: 1.15rem; color: var(--subject); }
+.exam-meta { font-size: 0.85rem; }
+.exam-note { font-size: 0.88rem; }
+.exam-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+.exam-studied { font-size: 0.8rem; }
+.exam-actions { display: flex; gap: 2px; margin-left: auto; }
+.exam-past { margin-top: 12px; }
+.exam-past summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; margin-bottom: 8px; }
+.exam-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.exam-form-slot:not(:empty) { margin-bottom: 12px; }
+.exam-form .study-form-row > input[type="text"] { flex: 1; width: auto; min-width: 140px; background: var(--surface); }
+.exam-form input[hidden] { display: none; }
+.exam-items { grid-template-columns: minmax(0, 1fr); }
+.exam { min-width: 0; }
+.exam-head { flex-wrap: wrap; }
+.exam-subject { flex: 1 1 140px; }

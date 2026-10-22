@@ -13,7 +13,7 @@ import { h, confirmButton } from '../core/dom.js';
 import { createPomodoro } from './pomodoro.js';
 import { exportBackup, importBackup } from '../core/backup.js';
 
-const COLORS = ['#c8553d', '#3c82cf', '#3c8a4a', '#8b62d0', '#d99a1f', '#2a9d8f', '#d65b8f', '#6b7a8f'];
+export const COLORS = ['#c8553d', '#3c82cf', '#3c8a4a', '#8b62d0', '#d99a1f', '#2a9d8f', '#d65b8f', '#6b7a8f'];
 const NO_SUBJECT = { id: '', name: 'Ohne Fach', color: '#a3a097' };
 const MIN_SESSION = 60 * 1000;
 const DAY = 24 * 60 * 60 * 1000;
@@ -125,7 +125,7 @@ export default {
       panel.hidden = !open;
     };
     ctx.addAction('Fächer', () => { drawSubjects(); togglePanel(subjectsPanel); }, 'Fächer verwalten');
-    ctx.addAction('Daten', () => togglePanel(dataPanel), 'Export und Import (Lernzeit und Gewohnheiten)');
+    ctx.addAction('Daten', () => togglePanel(dataPanel), 'Export und Import (Lernzeit, Gewohnheiten, Klausuren)');
 
     // ---------- Speichern ----------
     const putSession = async session => {
@@ -380,7 +380,7 @@ export default {
     const importInput = h('input', { type: 'file', accept: 'application/json,.json', hidden: true });
     const dataInfo = h('p', { class: 'muted small' });
     dataPanel.append(
-      h('p', { class: 'muted small' }, 'Sichert Lernzeit (Fächer, Einträge) und Gewohnheiten in einer JSON-Datei. Ein Import führt zusammen, statt zu überschreiben.'),
+      h('p', { class: 'muted small' }, 'Sichert Lernzeit (Fächer, Einträge), Gewohnheiten und Klausuren in einer JSON-Datei. Ein Import führt zusammen, statt zu überschreiben.'),
       h('div', { class: 'study-form-row' },
         h('button', {
           class: 'chip', type: 'button',
