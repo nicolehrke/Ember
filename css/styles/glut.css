@@ -12,7 +12,7 @@
   --border: #DDD0C2;
   --text: #2A1B10;
   --muted: #6A5B4E;
-  --dim: #7A6A5D;
+  --dim: #6E5F52;
   --accent: color-mix(in srgb, var(--ui) 45%, #2A1308);
   --on: #FFFFFF;
   --gm: 0.5;
@@ -27,7 +27,7 @@
     --border: #DDD0C2;
     --text: #2A1B10;
     --muted: #6A5B4E;
-    --dim: #7A6A5D;
+    --dim: #6E5F52;
     --gm: 0.5;
     color-scheme: light;
   }

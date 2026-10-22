@@ -14,9 +14,13 @@
   --text: #F5F6FF;
   --muted: #D3D6EE;
   --dim: #D3D6EE;
-  --accent: var(--ui);
+  --accent: color-mix(in srgb, var(--ui) 75%, #FFFFFF); /* aufgehellt: ≥ 4.5:1 auf Glas */
   --on: #0B0B1A;
   --gm: 1;
+  /* Statusfarben heller, weil die Glasflächen morgens hell hinterlegt sein können */
+  --ok: #A6E8BC;
+  --danger: #FFC2C2;
+  --warn: #FFD795;
 
   --primary-bg: #FFFFFF;
   --primary-fg: #0B0B1A;
