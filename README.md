@@ -48,7 +48,7 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen und Musik sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Liniensymbolen und Beschriftung unter der Uhr (Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkauf, Notizen, Musik), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein; ihre Reihenfolge und Größe lassen sich frei anpassen (siehe „Layout anpassen“). Sind alle geschlossen, bleibt der Hauptbereich leer.
+Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen, Musik und Licht sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Liniensymbolen und Beschriftung unter der Uhr (Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkauf, Notizen, Musik, Licht), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein; ihre Reihenfolge und Größe lassen sich frei anpassen (siehe „Layout anpassen“). Sind alle geschlossen, bleibt der Hauptbereich leer.
 
 Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben). Gewohnheiten und Mensa zeigen nur ihr Symbol.
 
@@ -251,6 +251,25 @@ Ember ist selbst ein Spotify-Wiedergabegerät („Ember“, Web Playback SDK). S
 - **Regeln seit Februar 2026 (Development Mode):** Die App funktioniert nur, solange der Besitzer Premium hat, und für höchstens 5 Nutzer. `GET /me` liefert kein `product`/`email` mehr – „kein Premium“ erkennt Ember deshalb über den Player. Die Suche liefert höchstens 10 Treffer pro Typ. Titel einer Playlist darf man nur bei eigenen oder gemeinsamen Playlists auflisten (Ember spielt Playlists als Ganzes, das betrifft es nicht).
 - **Spotify-Designrichtlinien:** Logo (unverändert, mind. 70 px) neben den Inhalten, Cover unverändert mit runden Ecken, Link „PLAY ON SPOTIFY“, höchstens 20 Einträge pro Liste, gesperrte Steuerelemente, wenn Spotify eine Aktion verbietet. **Abweichung auf Wunsch:** Der Fortschrittsbalken erlaubt Spulen; die Richtlinie verlangt einen rein anzeigenden Balken.
 - **Bekannte Einschränkungen:** Auf iPad/iPhone ist das SDK zwar offiziell unterstützt, Ton startet aber nur nach Antippen, und Entwickler berichten von unzuverlässigem Verhalten (nicht getestet; Ember ist für den Mac eingerichtet). Ohne Netz kann Spotify nicht abspielen.
+
+## Licht über Kurzbefehle
+
+Die Kachel „Licht“ schaltet Lichter (z. B. IKEA-Lampen in Apple Home) über die Apple-Kurzbefehle. Es gibt keinen Server und keine API: Jeder Button ist ein Link `shortcuts://run-shortcut?name=<Name>`, der beim Klick den gleichnamigen Kurzbefehl startet. Die Kurzbefehle-App öffnet sich dabei kurz und gibt dann zurück an den Browser – das ist normal.
+
+**Einrichten (einmal pro Button):**
+
+1. Kurzbefehle-App öffnen, neuen Kurzbefehl anlegen, Aktion „Home steuern“ wählen, Lichter und Szene einstellen.
+2. Den Kurzbefehl benennen – genau so wie der Kurzbefehl-Name im Button (Groß-/Kleinschreibung, Leerzeichen, Umlaute).
+3. In Ember über das Zahnrad der Kachel den Namen eintragen.
+4. Beim ersten Klick fragt macOS bzw. iOS einmal, ob die Seite die Kurzbefehle-App öffnen darf.
+
+Beim ersten Start gibt es vier Buttons: „Licht an“, „Licht aus“, „Lesen“, „Gemütlich“ (mit Shift+1 bis Shift+4). Im Zahnrad lassen sie sich umbenennen (Anzeigename und Kurzbefehl-Name sind getrennt), mit einem von acht Symbolen versehen, umsortieren, löschen und ergänzen. Pro Button ist ein Tastenkürzel Shift+1 … Shift+9 möglich; es wirkt nur, wenn gerade kein Eingabefeld aktiv ist. „Link testen“ zeigt den kompletten Link zum Kopieren, falls ein Kurzbefehl nicht startet (meist stimmt dann der Name nicht genau).
+
+**Kein Zustand.** Ember sendet nur den Befehl und weiß nicht, ob ein Licht an ist. Nach dem Klick zeigt der Button 1,5 s „Gesendet“ mit Haken – mehr nicht. Kann das System den Link nicht öffnen, passiert einfach nichts. Der Briefing-Satz nutzt keine Licht-Daten.
+
+**Größen:** S zeigt die ersten zwei Buttons, M bis zu vier in einer Reihe, L alle als Raster mit Symbol über dem Label. Auf Geräten ohne Kurzbefehle (Windows, Linux, Android – grob am User-Agent erkannt) steht statt der Buttons ein kurzer Hinweis; im Zweifel zeigt Ember die Buttons.
+
+**Daten:** `licht.buttons` – pro Button `{ id, label, shortcut, icon, order, key, updatedAt, deleted? }`, synchronisiert wie die Einkaufsliste (pro Button gewinnt die jüngste Änderung, Löschungen als Grabstein für 30 Tage, die vier Standard-Buttons haben feste IDs). Gespeichert werden nur Anzeige- und Kurzbefehl-Namen, keine Zugangsdaten. Die Anleitung in der Kachel merkt sich pro Gerät, ob sie auf- oder zugeklappt ist.
 
 ## Notizen
 
