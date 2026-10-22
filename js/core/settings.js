@@ -3,7 +3,7 @@ import { h, confirmButton } from './dom.js';
 import { popover } from './popover.js';
 import { connect, disconnect, syncNow, onStatus, getConfig } from './sync.js';
 
-const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Dashboard-Sync';
+const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Ember-Sync';
 const timeFmt = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
 
 const STATE_TEXT = {

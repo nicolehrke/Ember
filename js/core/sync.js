@@ -159,7 +159,7 @@ export async function connect(token) {
       gist = await gh('/gists', token, {
         method: 'POST',
         body: {
-          description: 'Dashboard-Sync (wird automatisch verwaltet)',
+          description: 'Ember-Sync (wird automatisch verwaltet)',
           public: false,
           files: { [FILE]: { content: JSON.stringify({ version: 1, keys: {} }) } },
         },
