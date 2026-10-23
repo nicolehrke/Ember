@@ -393,6 +393,7 @@ export async function initLayout(gridElement) {
   new MutationObserver(scheduleLayout).observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'data-size'] });
   new MutationObserver(scheduleLayout).observe(document.documentElement, { attributes: true, attributeFilter: ['data-mode', 'data-style'] });
   window.addEventListener('resize', scheduleLayout);
+  document.addEventListener('ember:style', scheduleLayout); // Stil-Datei geladen (andere Abstände)
   document.fonts?.addEventListener?.('loadingdone', scheduleLayout);
 
   // Erst zeigen, wenn die Positionen stehen: Schriften abwarten (höchstens 600 ms)

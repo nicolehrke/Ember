@@ -128,6 +128,11 @@ body {
 :root[data-mode="fokus"] .glow-focus { opacity: 1; }
 @keyframes breathe { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.08); opacity: 1; } }
 
+/* Bis die Stil-Datei geladen ist, nichts zeigen (kein Aufblitzen von Glut beim Laden);
+   falls das Skript ausfällt, nach 2 s trotzdem zeigen */
+:root:not(.is-styled) body > * { visibility: hidden; animation: reveal-fallback 0s 2s forwards; }
+@keyframes reveal-fallback { to { visibility: visible; } }
+
 .top, .dock, .grid, .only-back, .noscript { position: relative; z-index: 1; }
 .top { z-index: 3; } /* Popover über den Kacheln */
 
@@ -1793,8 +1798,9 @@ a.music-title:hover { text-decoration: underline; }
 /* Notizen */
 .card[data-widget="notes"][data-size="l"] .note-text { min-height: 18em; }
 /* Musik: S wie Mini-Modus */
-.card[data-widget="music"][data-size="s"] .music-volume-wrap,
-.card[data-widget="music"]:not([data-size="l"]) .music-browse { display: none; }
+.card[data-widget="music"][data-size="s"] .music-volume-wrap { display: none; }
+/* Auswahl in jeder Größe; in S/M mit begrenzter Höhe und eigenem Scrollen */
+.card[data-widget="music"]:not([data-size="l"]) .music-list-wrap { max-height: 320px; overflow-y: auto; overscroll-behavior: contain; }
 
 /* ---------- Widget: Licht (Apple-Kurzbefehle) ---------- */
 .light-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }

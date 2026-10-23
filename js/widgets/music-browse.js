@@ -57,6 +57,13 @@ export function createBrowse({ onError, onPlayed }) {
     : h('p', { class: 'muted' }, 'Nichts gefunden.'));
 
   const loading = () => body.replaceChildren(h('p', { class: 'muted' }, 'Lädt …'));
+  // Fehler direkt in der Liste zeigen, mit „Erneut versuchen“ – nie stillschweigend leer
+  const failed = (err, retry) => {
+    body.replaceChildren(h('div', { class: 'music-notice' },
+      h('p', { class: 'settings-error' }, err?.message ?? 'Die Liste konnte nicht geladen werden.'),
+      h('button', { class: 'chip', type: 'button', onclick: retry }, 'Erneut versuchen')));
+    onError(err);
+  };
 
   // ---------- Playlists ----------
   async function showPlaylists() {
@@ -73,8 +80,7 @@ export function createBrowse({ onError, onPlayed }) {
         h('button', { class: 'icon-btn icon-btn--sm', type: 'button', 'aria-label': 'Nächste Seite', disabled: playlistOffset + PAGE >= total, onclick: () => { playlistOffset += PAGE; showPlaylists(); } }, '›'));
       body.replaceChildren(...[items.length ? list(items) : h('p', { class: 'muted' }, 'Du hast noch keine Playlists.'), pager].filter(Boolean));
     } catch (err) {
-      body.replaceChildren();
-      onError(err);
+      failed(err, showPlaylists);
     }
   }
 
@@ -114,8 +120,7 @@ export function createBrowse({ onError, onPlayed }) {
         .map(t => ({ name: t.name, sub: t.artists?.map(a => a.name).join(', '), image: thumb(t.album?.images), uri: t.uri }));
       body.replaceChildren(items.length ? list(items) : h('p', { class: 'muted' }, 'Noch nichts gehört.'));
     } catch (err) {
-      body.replaceChildren();
-      onError(err);
+      failed(err, showRecent);
     }
   }
 

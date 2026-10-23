@@ -34,21 +34,40 @@ export function resolvedTheme(d = design) {
 }
 
 // Stylesheet/Schriften tauschen: neues Element erst laden, dann das alte entfernen (kein Aufblitzen).
+// Pro Platz lädt immer nur ein Link; ein schneller zweiter Wechsel verwirft den noch ladenden,
+// damit nie zwei Stile gleichzeitig gelten. Gibt ein Promise zurück, das nach dem Laden erfüllt ist.
 function swapLink(id, href) {
-  const old = document.getElementById(id);
-  if (!href) return void old?.remove();
-  if (old?.getAttribute('href') === href) return;
-  const link = h('link', { rel: 'stylesheet', href });
-  link.addEventListener('load', () => { old?.remove(); link.id = id; }, { once: true });
-  link.addEventListener('error', () => { old?.remove(); link.id = id; }, { once: true });
-  (old ?? document.getElementById('style-css') ?? document.head.lastElementChild).after(link);
+  for (const stale of document.querySelectorAll(`link[data-pending="${id}"]`)) stale.remove();
+  const current = document.getElementById(id);
+  if (!href) return Promise.resolve(void current?.remove());
+  if (current?.getAttribute('href') === href) return Promise.resolve();
+  return new Promise(resolve => {
+    const link = h('link', { rel: 'stylesheet', href, 'data-pending': id });
+    const done = () => {
+      if (link.isConnected) {
+        document.getElementById(id)?.remove();
+        link.removeAttribute('data-pending');
+        link.id = id;
+      }
+      resolve();
+    };
+    link.addEventListener('load', done, { once: true });
+    link.addEventListener('error', done, { once: true });
+    (current ?? document.getElementById('style-css') ?? document.head.lastElementChild).after(link);
+  });
 }
 
 function applyDesign() {
-  root.dataset.style = design.style;
+  const style = design.style;
+  root.dataset.style = style;
   root.dataset.theme = resolvedTheme();
-  swapLink('style-css', `css/styles/${design.style}.css`);
-  swapLink('style-fonts', `https://fonts.googleapis.com/css2?${STYLES[design.style].fonts}&display=swap`);
+  swapLink('style-css', `css/styles/${style}.css`).then(() => {
+    if (design.style !== style) return; // inzwischen erneut gewechselt
+    // Erst jetzt zeigen (Start) und das Raster mit den Abständen des Stils neu rechnen
+    root.classList.add('is-styled');
+    document.dispatchEvent(new Event('ember:style'));
+  });
+  swapLink('style-fonts', `https://fonts.googleapis.com/css2?${STYLES[style].fonts}&display=swap`);
   applyAccent();
   drawMenu();
 }
@@ -143,7 +162,13 @@ export async function initTheme(slot) {
   applyDesign();
 
   // Wahl von anderen Geräten (Sync) oder Tabs, Systemwechsel Hell/Dunkel
-  subscribe(KEY, v => { design = valid(v); applyDesign(); });
+  // Nur echte Änderungen (andere Geräte/Tabs) – die eigene Speicherung hat den Stil schon gesetzt
+  subscribe(KEY, v => {
+    const next = valid(v);
+    if (next.style === design.style && next.mode === design.mode) return;
+    design = next;
+    applyDesign();
+  });
   systemDark.addEventListener('change', applyDesign);
 
   // Minütlich, pünktlich zur vollen Minute; nach Ruhezustand sofort

@@ -40,6 +40,7 @@ export default {
     const miniButton = ctx.addAction('', async () => {
       mini = !mini;
       applyMini();
+      drawNow();
       await ctx.cache.save('mini', mini);
     });
     const applyMini = () => {
@@ -122,7 +123,9 @@ export default {
         return now.replaceChildren(...[
           remote?.device
             ? h('p', {}, `Läuft gerade auf „${remote.device.name}“${remote.item ? `: ${remote.item.name}` : ''}.`)
-            : h('p', { class: 'muted' }, 'Wähle unten eine Playlist oder übernimm die laufende Wiedergabe.'),
+            : h('p', { class: 'muted' }, mini
+              ? 'Zum Auswählen einer Playlist oben auf „Groß“ tippen – oder die laufende Wiedergabe übernehmen.'
+              : 'Wähle unten eine Playlist oder übernimm die laufende Wiedergabe.'),
           hereButton,
         ]);
       }

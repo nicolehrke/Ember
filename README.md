@@ -146,6 +146,15 @@ Bei Glas, Papier und Jarvis wird der Modus erzwungen; der Hell/Dunkel-Schalter i
 
 **Bewegung und Bedienung.** Animationen nutzen nur `transform` und `opacity` (Kachel öffnen 240 ms). `prefers-reduced-motion` schaltet Atmen, HUD-Ring und Eingangsanimationen ab. Fokusring 2 px in Akzentfarbe in allen Stilen; Touch-Ziele mindestens 40 px, bestehende 44 px bleiben.
 
+**Stil-Wechsel von Hand testen** (nach Änderungen an `theme.js` oder einer Stil-Datei):
+
+1. Im Stil-Menü schnell hintereinander Glas → Papier → Jarvis → Glut klicken: Am Ende gilt Glut, und in den Entwicklerwerkzeugen gibt es genau ein `link#style-css` und ein `link#style-fonts`.
+2. Glas → sofort zurück zu Glut: Es bleibt Glut, kein Glas-Hintergrund.
+3. In Glut Hell und Dunkel umschalten, dann Glas wählen (Schalter gesperrt, dunkel), zurück zu Glut: Die vorherige Hell/Dunkel-Wahl ist wieder da.
+4. Papier wählen und neu laden: Die Seite erscheint direkt in Papier, ohne kurzes Glut.
+5. Einen Timer starten (Fokus) und dabei alle Stile durchschalten: Lernzeit bleibt volle Breite, keine Kachel überlappt, nach dem Stoppen zurück in Ruhe.
+6. Nach jedem Wechsel stimmen Akzentfarbe und Phasenname im Menü mit der Uhrzeit überein.
+
 **Neuer Stil.** Eintrag in `STYLES` in `js/theme/palettes.js` (Name, Modi, Phasen, Stützpunkte, Schriften, Vorschaufarben) und eine Datei `css/styles/<id>.css`, die die Variablen aus `css/style.css` überschreibt.
 
 ## Speicher-Schicht und Sync
