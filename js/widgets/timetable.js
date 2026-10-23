@@ -1,10 +1,13 @@
-// Widget „Stundenplan“: RWTHonline-Kalender per iCal (Abo-Link oder Datei-Import).
-// Kompakt im Kopfbereich (nächster Termin mit Countdown), Details per Klick.
+// Widget „Stundenplan“: RWTHonline-Kalender per iCal über den eigenen Cloudflare Worker
+// (oder als importierte .ics-Datei). Kompakt im Kopfbereich (nächster Termin mit Countdown),
+// Details per Klick. Eingerichtet wird in den Einstellungen (Bereich „Kalender (RWTH)“).
 //
-// Der Abo-Link enthält einen persönlichen Schlüssel. Er wird deshalb nur über
-// ctx.cache gespeichert (Bereich local/: bleibt auf dem Gerät, nie im Gist-Sync)
-// und weder angezeigt noch geloggt.
-import { h, confirmButton } from '../core/dom.js';
+// Der geheime RWTHonline-Link liegt nur im Worker (Secret ICAL_URL), nie in Ember.
+// Ember kennt nur die Worker-Adresse ('timetable.worker', synchronisiert) und den
+// Zugangsschlüssel ('local/timetable.key', nur auf diesem Gerät). Der Schlüssel geht als
+// Authorization-Header mit, nicht in der Adresse, und wird weder angezeigt noch geloggt.
+import { h } from '../core/dom.js';
+import { load as loadKey, subscribe } from '../core/storage.js';
 import { fetchText } from '../core/http.js';
 import { popover } from '../core/popover.js';
 import { parseICS, expand } from '../core/ical.js';
@@ -40,22 +43,33 @@ function dayLabel(day) {
   return dayFmt.format(day);
 }
 
+export const WORKER_KEY = 'timetable.worker';
+export const ACCESS_KEY = 'local/timetable.key';
+export const ICS_KEY = 'local/cache/timetable.ics';
+export const RELOAD_EVENT = 'ember:timetable-reload';
+
+// Abruf über den Worker; der Schlüssel steht im Header, nicht in der Adresse.
+export async function fetchCalendar(worker, key, timeout = 15000) {
+  return fetchText(worker, { timeout, headers: key ? { Authorization: `Bearer ${key}` } : undefined });
+}
+
 // webcal:// in https:// umwandeln; relative Pfade (Beispieldatei) zulassen.
-function normalizeUrl(input) {
+export function normalizeUrl(input) {
   const value = input.trim().replace(/^webcal:\/\//i, 'https://');
   const url = new URL(value, location.href);
   if (!/^https?:$/.test(url.protocol)) throw new Error('Bitte einen http(s)- oder webcal-Link eingeben.');
   return url.href;
 }
 
-function explain(err) {
+// Ehrliche Erklärung für die Antworten des Workers (proxy/cloudflare-worker)
+export function explain(err) {
   if (err.code === 'network' && navigator.onLine) {
-    return 'Kalender nicht abrufbar – RWTHonline blockiert den direkten Abruf (CORS) oder ist nicht erreichbar. Nutze den eigenen Proxy (siehe README) oder importiere die .ics-Datei.';
+    return `Worker nicht erreichbar – Adresse prüfen. Falls im Worker ALLOWED_ORIGINS gesetzt ist, muss ${location.origin} darin stehen.`;
   }
-  // Antworten des eigenen Proxys (proxy/cloudflare-worker)
-  if (err.status === 401) return 'Der Proxy lehnt den Zugriff ab – stimmt der Schlüssel (key=…) im Link?';
-  if (err.status === 403) return 'Der Proxy erlaubt diese Dashboard-Adresse nicht – ALLOWED_ORIGINS prüfen.';
-  if (err.status === 502) return 'Der Proxy erreicht RWTHonline nicht, oder der Abo-Link ist abgelaufen.';
+  if (err.status === 401) return 'Falscher Zugangsschlüssel – er muss genau dem Worker-Secret ACCESS_KEY entsprechen.';
+  if (err.status === 403) return `Der Worker erlaubt diese Adresse nicht – ${location.origin} in ALLOWED_ORIGINS ergänzen.`;
+  if (err.status === 500) return 'Der Worker ist nicht fertig eingerichtet (Secret ICAL_URL oder ACCESS_KEY fehlt).';
+  if (err.status === 502) return 'Der Worker erreicht RWTHonline nicht, oder der Link dort ist abgelaufen – in RWTHonline einen neuen Link erzeugen und als ICAL_URL eintragen.';
   return err.message;
 }
 
@@ -75,7 +89,7 @@ const calendarIcon = () => {
 export const cleanTitle = title => title
   .replace(/^\s*\d+(?:\.\d+)+[A-Za-z]?\s+/, '')
   .replace(/,\s*Standardgruppe\s*$/i, '');
-const readEvents = text => parseICS(text).map(e => (e.title ? { ...e, title: cleanTitle(e.title) } : e));
+export const readEvents = text => parseICS(text).map(e => (e.title ? { ...e, title: cleanTitle(e.title) } : e));
 
 let panelControl;
 
@@ -102,7 +116,7 @@ export default {
     panelControl?.destroy();
     panelControl = popover(toggle, panel, container);
 
-    const state = { events: [], data: null, url: '', problem: null, offset: 0 };
+    const state = { events: [], data: null, worker: '', notice: null, problem: null, offset: 0 };
 
     // ---------- Kompakte Anzeige ----------
     const drawToggle = () => {
@@ -210,83 +224,39 @@ export default {
     toggle.addEventListener('click', drawPanel);
     prev.addEventListener('click', () => { state.offset = Math.max(0, state.offset - DAYS_PER_PAGE); drawPanel(); });
     next.addEventListener('click', () => { state.offset = Math.min(MAX_OFFSET, state.offset + DAYS_PER_PAGE); drawPanel(); });
-    setupButton.addEventListener('click', () => { setup.hidden = !setup.hidden; drawSetup(); });
-
-    // ---------- Einrichtung ----------
-    const fileInput = h('input', { type: 'file', accept: '.ics,text/calendar', hidden: true });
-    const setupInfo = h('p', { class: 'tt-setup-info' });
-
-    const drawSetup = () => {
-      const input = h('input', { type: 'url', placeholder: 'https://online.rwth-aachen.de/…', 'aria-label': 'iCal-Abo-Link', autocomplete: 'off', spellcheck: 'false' });
-      // novalidate: webcal://-Links und relative Pfade prüft normalizeUrl() selbst
-      const form = h('form', { class: 'settings-form', novalidate: true }, input, h('button', { class: 'chip chip--accent', type: 'submit' }, 'Speichern'));
-      form.addEventListener('submit', async event => {
-        event.preventDefault();
-        try {
-          const url = normalizeUrl(input.value);
-          await ctx.cache.save('url', url);
-          setupInfo.textContent = 'Gespeichert, lade Kalender …';
-          input.value = '';
-          setup.hidden = true;
-          ctx.refresh();
-        } catch (err) {
-          setupInfo.textContent = err instanceof TypeError ? 'Das ist kein gültiger Link.' : err.message;
-        }
-      });
-
-      setup.replaceChildren(...[
-        h('h2', { class: 'card-title' }, state.data ? 'Einrichtung' : 'Stundenplan einrichten'),
-        h('p', { class: 'muted' }, 'So findest du den Link: In RWTHonline deinen Terminkalender öffnen, dort die Export- bzw. Abo-Funktion (iCal) wählen und den Abo-Link kopieren. Der Link ist persönlich – behandle ihn wie ein Passwort.'),
-        state.url
-          ? h('div', { class: 'tt-saved' },
-            h('span', {}, 'Abo-Link ist gespeichert (nur auf diesem Gerät).'),
-            confirmButton({ class: 'chip' }, 'Link entfernen', 'Wirklich entfernen?', async () => {
-              await ctx.cache.remove('url');
-              setupInfo.textContent = 'Link entfernt. Der zuletzt geladene Stundenplan bleibt sichtbar, bis du ihn ersetzt.';
-              ctx.refresh();
-            }))
-          : null,
-        h('label', { class: 'tt-label' }, state.url ? 'Neuen Link eintragen' : 'iCal-Abo-Link'),
-        form,
-        h('div', { class: 'tt-import' },
-          h('span', { class: 'muted' }, 'Oder ohne Link:'),
-          h('button', { class: 'chip', type: 'button', onclick: () => fileInput.click() }, '.ics-Datei importieren')),
-        setupInfo,
-        fileInput,
-      ].filter(Boolean));
-    };
-
-    fileInput.addEventListener('change', async () => {
-      const file = fileInput.files?.[0];
-      fileInput.value = '';
-      if (!file) return;
-      try {
-        const text = await file.text();
-        if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error('Die Datei ist kein iCal-Kalender.');
-        const events = readEvents(text);
-        const data = { text, fetchedAt: Date.now(), source: 'file', name: file.name };
-        if (!(await ctx.cache.save('ics', data))) throw new Error('Die Datei ist zu groß für den Gerätespeicher.');
-        setupInfo.textContent = `${events.length} Einträge importiert.${state.url ? ' Hinweis: Beim nächsten Abruf über den Link wird die Datei ersetzt.' : ''}`;
-        state.data = data;
-        state.events = events;
-        state.problem = null;
-        drawAll();
-      } catch (err) {
-        setupInfo.textContent = err.message;
-      }
+    setupButton.addEventListener('click', () => {
+      panelControl?.setOpen(false);
+      document.dispatchEvent(new CustomEvent('ember:settings', { detail: 'kalender' }));
     });
+
+    // ---------- Einrichtung: in den Einstellungen ----------
+    const openSettings = () => {
+      panelControl?.setOpen(false);
+      document.dispatchEvent(new CustomEvent('ember:settings', { detail: 'kalender' }));
+    };
+    const drawSetup = () => {
+      setup.replaceChildren(
+        h('h2', { class: 'card-title' }, 'Stundenplan einrichten'),
+        h('p', { class: 'muted' }, 'Der Stundenplan kommt über deinen eigenen Cloudflare Worker. Worker-Adresse und Zugangsschlüssel trägst du in den Einstellungen unter „Kalender (RWTH)“ ein – dort kannst du auch eine .ics-Datei importieren.'),
+        state.notice && h('p', { class: 'settings-error' }, state.notice),
+        h('button', { class: 'chip chip--accent', type: 'button', onclick: openSettings }, 'Zu den Einstellungen'));
+    };
 
     // ---------- Laden ----------
     const load = async () => {
-      state.url = await ctx.cache.load('url', '');
+      state.worker = await loadKey(WORKER_KEY, '');
+      const key = await loadKey(ACCESS_KEY, '');
+      state.notice = (await loadKey('local/timetable.notice', null)) === 'direct-link-removed'
+        ? 'Der früher gespeicherte RWTHonline-Link wurde aus Sicherheitsgründen gelöscht. Bitte den Worker einrichten.'
+        : null;
       const cached = await ctx.cache.load('ics', null);
       state.problem = null;
       state.data = cached;
 
-      if (state.url) {
+      if (state.worker) {
         try {
-          const text = await fetchText(state.url, { timeout: 15000 });
-          if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error('Der Link liefert keinen iCal-Kalender.');
+          const text = await fetchCalendar(state.worker, key);
+          if (!/BEGIN:VCALENDAR/i.test(text)) throw new Error('Der Worker liefert keinen iCal-Kalender.');
           state.data = { text, fetchedAt: Date.now(), source: 'url' };
           await ctx.cache.save('ics', state.data);
         } catch (err) {
@@ -300,6 +270,12 @@ export default {
     };
 
     container.timetableLoad = load;
+    // Einstellungen geändert (Worker, Schlüssel, Datei) oder „Stundenplan neu laden“
+    const reload = () => ctx.refresh();
+    document.addEventListener(RELOAD_EVENT, reload);
+    ctx.onCleanup(() => document.removeEventListener(RELOAD_EVENT, reload));
+    ctx.onCleanup(subscribe(WORKER_KEY, reload));
+    ctx.onCleanup(subscribe(ACCESS_KEY, reload));
     ctx.every(30 * 1000, drawAll);
     await load();
   },

@@ -18,7 +18,7 @@ const STATUS_TEXT = {
 };
 
 export function spotifySettings() {
-  const section = h('section', { class: 'settings-spotify' });
+  const section = h('div', { class: 'settings-body' });
 
   const draw = async auth => {
     const clientId = await getClientId();
@@ -62,7 +62,6 @@ export function spotifySettings() {
     });
 
     section.replaceChildren(...[
-      h('h2', { class: 'card-title' }, 'Spotify'),
       h('p', { class: `settings-state is-${auth.status === 'connected' ? 'ok' : auth.status === 'error' || auth.status === 'expired' ? 'error' : 'off'}` },
         STATUS_TEXT[auth.status] ?? auth.status,
         info?.refreshExpiresAt ? ` · Anmeldung gültig bis ca. ${dateFmt.format(info.refreshExpiresAt)}` : ''),

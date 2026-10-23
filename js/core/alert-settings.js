@@ -28,7 +28,7 @@ export function muteButton() {
 }
 
 export function alertSettings() {
-  const section = h('section', { class: 'settings-spotify' });
+  const section = h('div', { class: 'settings-body' });
 
   const draw = () => {
     const s = getAlertSettings();
@@ -78,7 +78,6 @@ export function alertSettings() {
     title.addEventListener('change', () => setAlertSettings({ tabTitle: title.checked }));
 
     section.replaceChildren(...[
-      h('h2', { class: 'card-title' }, 'Timer & Wecker'),
       isMuted() ? h('p', { class: 'settings-state is-off' }, '🔕 Stumm – Ember spielt keinen Ton (Schalter oben neben ⚙︎)')
       : !audioSupported()
         ? h('p', { class: 'settings-error' }, 'Dieser Browser kann keine Töne erzeugen.')

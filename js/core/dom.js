@@ -38,6 +38,19 @@ export function confirmButton(attrs, label, question, action) {
   return button;
 }
 
+// Passwortfeld mit „Anzeigen“-Schalter (Geheimnisse nur maskiert; Klartext nur auf Wunsch)
+export function secretField(attrs) {
+  const input = h('input', { type: 'password', autocomplete: 'off', spellcheck: 'false', ...attrs });
+  const toggle = h('button', { class: 'chip', type: 'button', 'aria-pressed': 'false', 'aria-label': `${attrs['aria-label'] ?? 'Wert'} anzeigen` }, 'Anzeigen');
+  toggle.addEventListener('click', () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    toggle.textContent = show ? 'Verbergen' : 'Anzeigen';
+    toggle.setAttribute('aria-pressed', String(show));
+  });
+  return { input, element: h('div', { class: 'settings-secret' }, input, toggle) };
+}
+
 // Escapen für Texte, die per innerHTML eingesetzt werden (z. B. API-Daten).
 const ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ENTITIES[c]);

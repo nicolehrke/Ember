@@ -14,7 +14,6 @@ import { createPomodoro } from './pomodoro.js';
 import { createTimers } from './timers.js';
 import { createAlarms } from './alarms.js';
 import { getAlertSettings, onAlerts, isAudioReady, unlockAudio, keepScreenOn, isMuted } from '../core/alerts.js';
-import { exportBackup, importBackup } from '../core/backup.js';
 import { setTitlePart } from '../core/title.js';
 import { setFact, setFocus } from '../core/briefing.js';
 
@@ -130,11 +129,9 @@ export default {
     const focusLabel = h('span', { class: 'focus-label muted' });
     const focusDial = h('div', { class: 'focus-dial', hidden: true }, focusRing, h('div', { class: 'focus-dial-text' }, focusTime, focusLabel));
     const subjectsPanel = h('div', { class: 'study-panel', hidden: true });
-    const dataPanel = h('div', { class: 'study-panel', hidden: true });
 
     container.append(
       subjectsPanel,
-      dataPanel,
       modeSwitch,
       soundHint,
       muteHint,
@@ -153,11 +150,12 @@ export default {
 
     const togglePanel = panel => {
       const open = panel.hidden;
-      subjectsPanel.hidden = dataPanel.hidden = true;
+      subjectsPanel.hidden = true;
       panel.hidden = !open;
     };
     ctx.addAction('Fächer', () => { drawSubjects(); togglePanel(subjectsPanel); }, 'Fächer verwalten');
-    ctx.addAction('Daten', () => togglePanel(dataPanel), 'Export und Import (Lernzeit, Gewohnheiten, Klausuren, Notizen, Einkaufsliste, Aufgaben, Licht)');
+    // Export/Import liegt in den Einstellungen (Bereich „Daten“)
+    ctx.addAction('Daten', () => document.dispatchEvent(new CustomEvent('ember:settings', { detail: 'daten' })), 'Export und Import – öffnet die Einstellungen');
 
     // ---------- Speichern ----------
     const putSession = async session => {
@@ -453,42 +451,6 @@ export default {
         })),
         add);
     };
-
-    // ---------- Export / Import (zentral über core/backup.js) ----------
-    const importInput = h('input', { type: 'file', accept: 'application/json,.json', hidden: true });
-    const dataInfo = h('p', { class: 'muted small' });
-    dataPanel.append(
-      h('p', { class: 'muted small' }, 'Sichert Lernzeit (Fächer, Einträge), Gewohnheiten, Klausuren, Notizen, Einkaufsliste, Aufgaben und Licht-Buttons in einer JSON-Datei. Ein Import führt zusammen, statt zu überschreiben.'),
-      h('div', { class: 'study-form-row' },
-        h('button', {
-          class: 'chip', type: 'button',
-          onclick: async () => {
-            const data = await exportBackup();
-            const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-            const a = h('a', { href: url, download: `dashboard-backup-${isoDate(Date.now())}.json` });
-            document.body.append(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            dataInfo.textContent = 'Export erstellt.';
-          },
-        }, 'Als JSON exportieren'),
-        h('button', { class: 'chip', type: 'button', onclick: () => importInput.click() }, 'JSON importieren')),
-      importInput,
-      dataInfo);
-
-    importInput.addEventListener('change', async () => {
-      const file = importInput.files?.[0];
-      importInput.value = '';
-      if (!file) return;
-      try {
-        const added = await importBackup(JSON.parse(await file.text()));
-        dataInfo.textContent = `Import fertig: ${added.length ? `neu sind ${added.join(', ')}` : 'keine neuen Einträge'}; vorhandene wurden abgeglichen.`;
-        drawAll();
-      } catch (err) {
-        dataInfo.textContent = err instanceof SyntaxError ? 'Die Datei ist kein gültiges JSON.' : err.message;
-      }
-    });
 
     // ---------- Modus ----------
     const setMode = async next => {

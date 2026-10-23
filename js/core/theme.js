@@ -18,7 +18,7 @@ const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 let design = { style: DEFAULT_STYLE, mode: 'system' };
 let phase = null;
 const phaseListeners = new Set();
-let drawMenu = () => {};
+let drawMenu;
 
 const valid = d => ({
   style: STYLES[d?.style] ? d.style : DEFAULT_STYLE,
@@ -101,20 +101,15 @@ async function setDesign(next) {
   await save(KEY, design);
 }
 
-// Palettensymbol mit Menü: vier Stile (Name + Farbvorschau) und Hell/Dunkel.
-function mountMenu(slot) {
-  const button = h('button', { class: 'icon-btn theme-btn', type: 'button', title: 'Stil', 'aria-label': 'Stil und Hell/Dunkel', 'aria-controls': 'theme-panel' }, icon('palette'));
+// Stil-Auswahl (vier Stile mit Farbvorschau) und Hell/Dunkel als wiederverwendbarer Baustein –
+// im Paletten-Menü oben und im Einstellungs-Bereich „Darstellung“. Alle Instanzen zeigen denselben Stand.
+const menus = new Set();
+drawMenu = () => { for (const draw of menus) draw(); };
+
+export function themeControls() {
   const list = h('div', { class: 'theme-styles', role: 'group', 'aria-label': 'Stil' });
   const modeSwitch = h('div', { class: 'segmented theme-modes', role: 'group', 'aria-label': 'Hell oder dunkel' });
   const hint = h('p', { class: 'muted small theme-hint' });
-  const panel = h('div', { class: 'popover theme-panel', id: 'theme-panel', hidden: true },
-    h('h2', { class: 'card-title' }, 'Stil'),
-    list,
-    h('h2', { class: 'card-title theme-subtitle' }, 'Hell / Dunkel'),
-    modeSwitch,
-    hint);
-  slot.append(button, panel);
-  popover(button, panel, slot);
 
   // Buttons nur einmal bauen, danach nur Zustand setzen (Tastaturfokus bleibt erhalten).
   const styleButtons = Object.entries(STYLES).map(([id, s]) => {
@@ -130,7 +125,7 @@ function mountMenu(slot) {
   }));
   modeSwitch.append(...modeButtons.map(b => b.button));
 
-  drawMenu = () => {
+  menus.add(() => {
     const hour = new Date().getHours() + new Date().getMinutes() / 60;
     for (const { id, s, button, info } of styleButtons) {
       button.setAttribute('aria-pressed', String(design.style === id));
@@ -144,8 +139,19 @@ function mountMenu(slot) {
     hint.textContent = fixed
       ? `${STYLES[design.style].label} gibt es nur ${resolvedTheme() === 'dark' ? 'dunkel' : 'hell'} – der Schalter gilt für Glut.`
       : 'System folgt der Einstellung des Geräts.';
-  };
+  });
   drawMenu();
+  return h('div', { class: 'theme-controls' },
+    h('h3', { class: 'settings-label' }, 'Stil'), list,
+    h('h3', { class: 'settings-label theme-subtitle' }, 'Hell / Dunkel'), modeSwitch, hint);
+}
+
+// Palettensymbol oben als Schnellzugriff
+function mountMenu(slot) {
+  const button = h('button', { class: 'icon-btn theme-btn', type: 'button', title: 'Stil', 'aria-label': 'Stil und Hell/Dunkel', 'aria-controls': 'theme-panel' }, icon('palette'));
+  const panel = h('div', { class: 'popover theme-panel', id: 'theme-panel', hidden: true }, themeControls());
+  slot.append(button, panel);
+  popover(button, panel, slot);
 }
 
 export async function initTheme(slot) {

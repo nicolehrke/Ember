@@ -665,6 +665,33 @@ input[type="password"] { width: 100%; }
 .dot--btn { width: 18px; height: 18px; border: 0; padding: 0; cursor: pointer; }
 
 /* ---------- Einstellungen / Sync ---------- */
+.settings-panel { width: min(480px, calc(100vw - 32px)); }
+.settings-section { border-top: 1px solid var(--border); }
+.settings-section:last-child { border-bottom: 1px solid var(--border); }
+.settings-section > summary {
+  min-height: 48px;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  padding: 8px 28px 8px 0;
+  position: relative;
+  cursor: pointer;
+  list-style: none;
+}
+.settings-section > summary::-webkit-details-marker { display: none; }
+.settings-section > summary::after { content: "›"; position: absolute; right: 6px; top: 50%; translate: 0 -50%; color: var(--muted); transition: rotate 0.15s; }
+.settings-section[open] > summary::after { rotate: 90deg; }
+.settings-section-title { font-weight: 600; }
+.settings-section > .settings-body { margin: 0 0 16px; }
+.settings-label { margin: 6px 0 0; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.settings-field { display: grid; gap: 4px; }
+.settings-field input[type="url"] { width: 100%; min-width: 0; padding: 7px 14px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--surface-2); color: inherit; font: inherit; }
+.settings-secret { display: flex; gap: 6px; min-width: 0; }
+.settings-secret input { flex: 1; width: auto; }
+.settings-result { margin: 0; font-size: 0.9rem; }
+.settings-result:empty { display: none; }
+.settings-result.is-ok { color: var(--ok); }
+.settings-result.is-error { color: var(--danger); }
 .settings-btn { position: relative; }
 .sync-dot {
   position: absolute;
@@ -685,7 +712,8 @@ input[type="password"] { width: 100%; }
 .settings-body p { margin: 0; }
 .settings-steps { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; font-size: 0.9rem; }
 .settings-steps a, .settings-body a:not(.chip) { color: var(--accent); }
-.settings-form { display: flex; gap: 6px; }
+.settings-form { display: flex; flex-wrap: wrap; gap: 6px; }
+.settings-form > .settings-secret { flex: 1 1 220px; }
 .settings-error { margin: 0; font-size: 0.85rem; color: var(--danger); min-height: 0; }
 .settings-error:empty { display: none; }
 .settings-state.is-ok::before { content: "● "; color: var(--ok); }

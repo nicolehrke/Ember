@@ -21,7 +21,7 @@ css/styles/<stil>.css   Ein Stil pro Datei (glut, glas, papier, jarvis), nur der
 js/main.js              Startpunkt: Migrationen, Theme, Einstellungen, Widgets, Sync
 js/core/storage.js      Speicher-Schicht (einzige Stelle mit localStorage)
 js/core/sync.js         Sync zwischen Geräten über ein GitHub Gist
-js/core/settings.js     Einstellungs-Panel (⚙︎) zum Verbinden des Syncs
+js/core/settings.js     Einstellungs-Panel (⚙︎) mit allen Bereichen (siehe „Einstellungen“)
 js/core/migrations.js   Einmalige Aufräumarbeiten nach Umbauten
 js/core/widget-host.js  Baut Kacheln, ruft Widgets auf, fängt Fehler ab
 js/core/theme.js        Stil, Hell/Dunkel und Tageszeit-Akzente, Stil-Menü (Palettensymbol)
@@ -37,6 +37,7 @@ js/core/title.js        Tab-Titel aus Teilen (Lernzeit, Musik)
 js/core/alerts.js       Töne (Web Audio), Benachrichtigungen, Bildschirm anlassen
 js/core/ringer.js       Klingel-Fenster für Timer und Wecker
 js/core/alert-settings.js  Bereich „Timer & Wecker“ in ⚙︎
+js/widgets/*-settings.js   Bereiche „Kalender (RWTH)“ und „Licht“ in ⚙︎
 js/spotify/             Spotify: Anmeldung (PKCE), Web API, Player-Gerät „Ember“
 assets/spotify/         Offizielles Spotify-Logo (unverändert, aus dem Logo-Paket von developer.spotify.com)
 js/core/backup.js       Gemeinsamer Export/Import aller Sammlungen
@@ -54,6 +55,22 @@ Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – i
 
 Welche Kacheln offen sind, speichert jedes Gerät für sich in `local/open` (wird nicht synchronisiert), damit Mac und iPad unterschiedliche Ansichten haben können. Ohne gespeicherten Zustand sind Mensa und Gewohnheiten offen.
 
+## Einstellungen
+
+Alles Einstellbare liegt im Panel hinter ⚙︎ oben rechts, in einklappbaren Bereichen (per Tastatur: Tab und Enter/Leertaste auf die Überschrift). Kacheln mit eigener Einrichtung öffnen den passenden Bereich direkt.
+
+| Bereich | Inhalt | Gespeichert |
+| --- | --- | --- |
+| **Darstellung** | Stil (Glut, Glas, Papier, Jarvis) und Hell/Dunkel – dasselbe wie das Palettensymbol oben | synchronisiert (`design`) |
+| **Konten und Sync** | GitHub-Token (maskiert, mit „Anzeigen“), Gist-Status, Jetzt synchronisieren, Gist öffnen, Trennen | Token nur auf dem Gerät |
+| **Kalender (RWTH)** | Worker-Adresse, Zugangsschlüssel (maskiert), Verbindung prüfen, Stundenplan neu laden, .ics-Import – siehe „Kalender (RWTH)“ | Adresse synchronisiert, Schlüssel nur auf dem Gerät |
+| **Licht** | Buttons der Licht-Kachel: Anzeigename, Kurzbefehl-Name, Symbol, Reihenfolge, Tastenkürzel, Löschen, Test-Link (auch über das Zahnrad der Kachel) | synchronisiert (`licht.buttons`) |
+| **Musik (Spotify)** | Client-ID, Verbinden/Trennen, Weiterleitungs-Adresse, Titel im Tab | nur auf dem Gerät |
+| **Timer & Wecker** | Klang, Lautstärke, Testton, Benachrichtigungen, Bildschirm anlassen, Tab-Titel, Schlummerdauer | nur auf dem Gerät |
+| **Daten** | Export/Import als JSON (ohne Tokens und Schlüssel), Layout zurücksetzen (auch über „Daten“ in der Lernzeit-Kachel) | – |
+
+Einstellungen, die nur eine Kachel betreffen, bleiben dort: Fächer der Lernzeit, Pomodoro-Dauern, Anzeige-Optionen der Aufgaben, Tage bis zur Klausur im Dock, Mini-Ansicht der Musik. Geheimnisse (GitHub-Token, Kalender-Schlüssel) erscheinen nie im Klartext, außer du tippst auf „Anzeigen“; sie stehen nicht in Fehlermeldungen oder der Konsole.
+
 ## Layout anpassen
 
 **Raster.** Die Kacheln liegen in einem Masonry-Raster (`js/core/layout.js`): ab 1200 px Fensterbreite 4 Spalten, ab 900 px 3, ab 560 px 2, darunter eine. S ist eine Spalte breit, M und L zwei (höchstens so viele, wie es Spalten gibt). Die Höhe bestimmt allein der Inhalt – es gibt keine Zeilen und kein Strecken auf die Höhe der Nachbarn. Die Kacheln werden in ihrer Reihenfolge nacheinander an die Stelle mit der niedrigsten freien Oberkante gesetzt, die für ihre Breite passt (bei Gleichstand links). Wird eine Kachel geschlossen, kleiner oder ihr Inhalt kürzer, rücken die folgenden hoch und füllen die Lücke (200 ms, bei reduzierter Bewegung ohne Animation). Neu gerechnet wird bei Fenstergröße, Öffnen/Schließen, Größenwechsel, Inhaltsänderung, Fokus-Modus und nachgeladenen Schriften; beim Laden bleiben die Kacheln unsichtbar, bis ihre Positionen stehen. Im Fokus-Modus nimmt die Lernzeit die volle Breite vorn ein. Abstände kommen aus `--gap` (oder `--gap-x` / `--gap-y`), die Layout-Logik kennt keine Stile.
@@ -69,7 +86,7 @@ Ohne eigenen Anordnen-Modus: Jede Kachel lässt sich jederzeit verschieben und i
 
 Die Reihenfolge liegt als Liste der Kachel-IDs unter `layout.order` und wird über das Gist synchronisiert (die jüngste Änderung gewinnt). Kacheln, die in der Liste fehlen (z. B. neue Widgets), kommen ans Ende; unbekannte IDs werden ignoriert. Geschlossene Kacheln behalten ihren Platz in der Reihenfolge und erscheinen beim Öffnen wieder dort. Weil jede Kachel an die höchste freie Stelle rückt, kann eine schmale Kachel neben oder über einer früheren breiten landen. Die Größen gelten pro Gerät (`local/sizes`).
 
-**⚙︎ → Layout → Layout zurücksetzen** stellt die Standardreihenfolge (auf allen Geräten) und die Standardgrößen (auf diesem Gerät) wieder her; der Button fragt einmal nach („Wirklich zurücksetzen?“).
+**⚙︎ → Daten → Layout zurücksetzen** stellt die Standardreihenfolge (auf allen Geräten) und die Standardgrößen (auf diesem Gerät) wieder her; der Button fragt einmal nach („Wirklich zurücksetzen?“).
 
 ## Neues Widget hinzufügen
 
@@ -200,7 +217,7 @@ Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer,
 - Fächer anlegen, umbenennen, Farbe wechseln und löschen über „Fächer“.
 - Übersicht über heute und die Woche, Balkendiagramm Mo–So nach Fach, Wochen mit ‹ › durchblättern.
 - Unter „Einträge dieser Woche“ Einträge bearbeiten, löschen oder nachtragen.
-- Über „Daten“ als JSON exportieren und importieren (zentral über `js/core/backup.js`, enthält auch die Gewohnheiten). Ein Import führt zusammen, statt zu überschreiben, und erzeugt keine Duplikate. Ältere Lernzeit-Exporte lassen sich weiter importieren.
+- Über ⚙︎ → Daten (oder „Daten“ in der Lernzeit-Kachel, das den Bereich öffnet) als JSON exportieren und importieren (zentral über `js/core/backup.js`, enthält auch Gewohnheiten, Klausuren, Notizen, Einkauf, Aufgaben und Licht-Buttons). Ein Import führt zusammen, statt zu überschreiben, und erzeugt keine Duplikate. Ältere Lernzeit-Exporte lassen sich weiter importieren.
 
 ## Gewohnheiten
 
@@ -246,10 +263,10 @@ Ember ist selbst ein Spotify-Wiedergabegerät („Ember“, Web Playback SDK). S
 3. **Redirect URIs** – genau so eintragen (Spotify vergleicht exakt, inkl. Schrägstrich am Ende):
    - lokal: `http://127.0.0.1:8000/` (Spotify verbietet `localhost`; deshalb Ember lokal über <http://127.0.0.1:8000/> öffnen)
    - veröffentlicht: deine GitHub-Pages-Adresse, z. B. `https://<benutzer>.github.io/<repo>/`
-   Die passende Adresse für die gerade geöffnete Seite steht auch in Ember unter ⚙︎ → Spotify (mit „Kopieren“).
+   Die passende Adresse für die gerade geöffnete Seite steht auch in Ember unter ⚙︎ → Musik (Spotify) (mit „Kopieren“).
 4. Bei **Which API/SDKs are you planning to use?** „Web API“ und „Web Playback SDK“ ankreuzen, speichern.
 5. Die **Client ID** kopieren (kein Client-Secret – Ember braucht und speichert keins).
-6. In Ember: ⚙︎ → Spotify → Client-ID eintragen → **Mit Spotify verbinden** → bei Spotify zustimmen.
+6. In Ember: ⚙︎ → Musik (Spotify) → Client-ID eintragen → **Mit Spotify verbinden** → bei Spotify zustimmen.
 
 **Wichtig zu `127.0.0.1`:** Für den Browser ist `http://127.0.0.1:8000` eine andere Website als `http://localhost:8000` mit eigenem Speicher. Synchronisierte Daten holt der Gist-Sync (Token dort einmal eintragen); Lokales wie Kachelgrößen, Stundenplan-Link und die Spotify-Verbindung richtest du dort neu ein.
 
@@ -257,8 +274,8 @@ Ember ist selbst ein Spotify-Wiedergabegerät („Ember“, Web Playback SDK). S
 
 - **Anmeldung:** Authorization Code Flow mit PKCE, mit Prüfung des `state`-Parameters; Code und State werden nach der Rückkehr aus der Adresszeile entfernt. Berechtigungen: `streaming`, `user-read-email`, `user-read-private` (vom Player verlangt), `user-read-playback-state`, `user-modify-playback-state`, `playlist-read-private`, `playlist-read-collaborative`, `user-read-recently-played`.
 - **Tokens:** Access-Tokens gelten 1 Stunde und werden automatisch erneuert. Refresh-Tokens gelten laut Spotify 6 Monate ab der Anmeldung; danach (oder wenn Spotify die Anmeldung widerruft) zeigt Ember „Neu verbinden“.
-- **Speicherort:** Client-ID, Tokens, Lautstärke und der Tab-Titel-Schalter liegen nur auf dem jeweiligen Gerät (`local/spotify/…`) – nie im Gist-Sync, nie im Export. Spotify-Inhalte (Titel, Cover, Playlists) werden nicht gespeichert, nur kurz im Arbeitsspeicher der Seite gehalten. **Trennen** (⚙︎ → Spotify) löscht alle Spotify-Daten dieses Geräts und meldet das Gerät „Ember“ ab.
-- **Tab-Titel:** Mit dem Schalter unter ⚙︎ → Spotify zeigt der Tab bei laufender Musik „♪ Titel – Ember“.
+- **Speicherort:** Client-ID, Tokens, Lautstärke und der Tab-Titel-Schalter liegen nur auf dem jeweiligen Gerät (`local/spotify/…`) – nie im Gist-Sync, nie im Export. Spotify-Inhalte (Titel, Cover, Playlists) werden nicht gespeichert, nur kurz im Arbeitsspeicher der Seite gehalten. **Trennen** (⚙︎ → Musik (Spotify)) löscht alle Spotify-Daten dieses Geräts und meldet das Gerät „Ember“ ab.
+- **Tab-Titel:** Mit dem Schalter unter ⚙︎ → Musik (Spotify) zeigt der Tab bei laufender Musik „♪ Titel – Ember“.
 - **Regeln seit Februar 2026 (Development Mode):** Die App funktioniert nur, solange der Besitzer Premium hat, und für höchstens 5 Nutzer. `GET /me` liefert kein `product`/`email` mehr – „kein Premium“ erkennt Ember deshalb über den Player. Die Suche liefert höchstens 10 Treffer pro Typ. Titel einer Playlist darf man nur bei eigenen oder gemeinsamen Playlists auflisten (Ember spielt Playlists als Ganzes, das betrifft es nicht).
 - **Spotify-Designrichtlinien:** Logo (unverändert, mind. 70 px) neben den Inhalten, Cover unverändert mit runden Ecken, Link „PLAY ON SPOTIFY“, höchstens 20 Einträge pro Liste, gesperrte Steuerelemente, wenn Spotify eine Aktion verbietet. **Abweichung auf Wunsch:** Der Fortschrittsbalken erlaubt Spulen; die Richtlinie verlangt einen rein anzeigenden Balken.
 - **Bekannte Einschränkungen:** Auf iPad/iPhone ist das SDK zwar offiziell unterstützt, Ton startet aber nur nach Antippen, und Entwickler berichten von unzuverlässigem Verhalten (nicht getestet; Ember ist für den Mac eingerichtet). Ohne Netz kann Spotify nicht abspielen.
@@ -271,16 +288,16 @@ Die Kachel „Licht“ schaltet Lichter (z. B. IKEA-Lampen in Apple Home) über 
 
 1. Kurzbefehle-App öffnen, neuen Kurzbefehl anlegen, Aktion „Home steuern“ wählen, Lichter und Szene einstellen.
 2. Den Kurzbefehl benennen – genau so wie der Kurzbefehl-Name im Button (Groß-/Kleinschreibung, Leerzeichen, Umlaute).
-3. In Ember über das Zahnrad der Kachel den Namen eintragen (die Anleitung steht nur hier, nicht in der Kachel).
+3. In Ember unter ⚙︎ → Licht (oder über das Zahnrad der Kachel, das diesen Bereich öffnet) den Namen eintragen. Die Anleitung steht nur hier, nicht in der Kachel.
 4. Beim ersten Klick fragt macOS bzw. iOS einmal, ob die Seite die Kurzbefehle-App öffnen darf.
 
-Beim ersten Start gibt es vier Buttons: „Licht an“, „Licht aus“, „Lesen“, „Gemütlich“ (mit Shift+1 bis Shift+4). Im Zahnrad lassen sie sich umbenennen (Anzeigename und Kurzbefehl-Name sind getrennt), mit einem von acht Symbolen versehen, umsortieren, löschen und ergänzen. Pro Button ist ein Tastenkürzel Shift+1 … Shift+9 möglich; es wirkt nur, wenn gerade kein Eingabefeld aktiv ist. „Link testen“ zeigt den kompletten Link zum Kopieren, falls ein Kurzbefehl nicht startet (meist stimmt dann der Name nicht genau).
+Beim ersten Start gibt es vier Buttons: „Licht an“, „Licht aus“, „Lesen“, „Gemütlich“ (mit Shift+1 bis Shift+4). Unter ⚙︎ → Licht lassen sie sich umbenennen (Anzeigename und Kurzbefehl-Name sind getrennt), mit einem von acht Symbolen versehen, umsortieren, löschen und ergänzen. Pro Button ist ein Tastenkürzel Shift+1 … Shift+9 möglich; es wirkt nur, wenn gerade kein Eingabefeld aktiv ist. „Link testen“ zeigt den kompletten Link zum Kopieren, falls ein Kurzbefehl nicht startet (meist stimmt dann der Name nicht genau).
 
 **Kein Zustand.** Ember sendet nur den Befehl und weiß nicht, ob ein Licht an ist. Nach dem Klick zeigt der Button 1,5 s „Gesendet“ mit Haken – mehr nicht. Kann das System den Link nicht öffnen, passiert einfach nichts. Der Briefing-Satz nutzt keine Licht-Daten.
 
 **Größen:** S zeigt die ersten zwei Buttons, M bis zu vier in einer Reihe, L alle als Raster mit Symbol über dem Label. Auf Geräten ohne Kurzbefehle (Windows, Linux, Android – grob am User-Agent erkannt) steht statt der Buttons ein kurzer Hinweis; im Zweifel zeigt Ember die Buttons.
 
-**Daten:** `licht.buttons` – pro Button `{ id, label, shortcut, icon, order, key, updatedAt, deleted? }`, synchronisiert wie die Einkaufsliste (pro Button gewinnt die jüngste Änderung, Löschungen als Grabstein für 30 Tage, die vier Standard-Buttons haben feste IDs). Gespeichert werden nur Anzeige- und Kurzbefehl-Namen, keine Zugangsdaten.
+**Daten:** `licht.buttons` – pro Button `{ id, label, shortcut, icon, order, key, updatedAt, deleted? }`, über das Gist synchronisiert wie die Einkaufsliste (pro Button gewinnt die jüngste Änderung, Löschungen als Grabstein für 30 Tage). Die vier Standard-Buttons haben feste IDs und den Zeitstempel 0: Startet Ember auf einem neuen Gerät, überschreiben dessen Standard-Buttons beim ersten Sync nichts, sondern übernehmen die Namen aus dem Gist. Mit demselben Token erscheinen so auf jedem Gerät dieselben Buttons. Gespeichert werden nur Anzeige- und Kurzbefehl-Namen, keine Zugangsdaten.
 
 ## Notizen
 
@@ -301,26 +318,27 @@ Die Klausuren öffnest du über den Dock-Button „🎓 Klausuren“. Oben in de
 - Datumsrechnung nach Europe/Berlin: Tage zählen als Kalendertage; Stunden werden in Wanduhrzeit gerechnet, damit die Zeitumstellung nichts verschiebt.
 - Daten: `exams.list` (wird synchronisiert und ist im Export enthalten; 2. Termin in `date2`/`time2`/`location2`, Entscheidung in `chosen`); Fächer in `study.subjects`.
 
-## Stundenplan (RWTHonline)
+## Kalender (RWTH)
 
 Das Widget oben in der Kopfleiste zeigt den laufenden bzw. nächsten Termin mit Countdown. Titel werden gekürzt angezeigt: Die vorangestellte Modulnummer (z. B. „41.00030“) und der Zusatz „, Standardgruppe“ fallen weg; Veranstaltungsart (VO, UE …) und echte Gruppen (z. B. „Tutorium W3“) bleiben. Ein Klick öffnet heute und morgen (weitere Tage mit ‹ ›) mit Raum, Beschreibung, freien Zeitfenstern und abgesagten Terminen. Aktualisierung alle 30 Minuten; bei Fehlern bleiben die zuletzt geladenen Daten sichtbar.
 
-### iCal-Link in RWTHonline finden
+**Sicherheit.** Der iCal-Abo-Link aus RWTHonline enthält einen persönlichen Schlüssel und ist wie ein Passwort zu behandeln. Er liegt **ausschließlich** als Secret `ICAL_URL` in deinem Cloudflare Worker – nicht in Ember, nicht im Gerätespeicher, nicht im Gist, nicht im Repository, nicht in Logs. RWTHonline erlaubt den direkten Abruf aus dem Browser ohnehin nicht (fehlende CORS-Header). Ember kennt nur:
 
-In RWTHonline deinen Terminkalender öffnen und dort die Export- bzw. Abo-Funktion (iCal) wählen. Den angebotenen Abo-Link kopieren (beginnt mit `https://` oder `webcal://`). Die genaue Bezeichnung des Menüpunkts kann sich je nach RWTHonline-Version unterscheiden.
+- die **Worker-Adresse** (`timetable.worker`) – öffentlich, wird synchronisiert,
+- den **Zugangsschlüssel** (`ACCESS_KEY` des Workers, `local/timetable.key`) – nur auf dem jeweiligen Gerät, maskiert, nie im Sync und nie im Export. Er geht als `Authorization`-Header mit, nicht in der Adresse.
 
-**Der Link enthält einen persönlichen Schlüssel und ist wie ein Passwort zu behandeln.** Nicht in Code, Commits, Issues oder Chats einfügen. Falls er doch einmal öffentlich geworden ist: In RWTHonline beim Kalender-Export einen neuen Link erzeugen; der alte wird damit ungültig.
+Ein früher in Ember gespeicherter direkter RWTHonline-Link wird beim Start gelöscht (mit Hinweis im Stundenplan); eine alte Worker-Adresse mit `?key=…` wird in Adresse und Schlüssel aufgeteilt. Falls der Link doch einmal öffentlich geworden ist: In RWTHonline einen neuen erzeugen; der alte wird damit ungültig.
 
-### Im Dashboard eintragen
+**Einrichten unter ⚙︎ → Kalender (RWTH)** (auch über „Einrichten“ im Stundenplan):
 
-Auf das Stundenplan-Feld oben klicken → Link einfügen → Speichern. Der Link wird nur im Gerätespeicher des Browsers abgelegt (`local/`), nie im Gist-Sync; auf jedem Gerät also einmal eintragen.
+1. In RWTHonline im Terminkalender unter Export/Abo (iCal) einen neuen Link erzeugen.
+2. Den Link im Cloudflare Worker als Secret `ICAL_URL` eintragen (siehe unten).
+3. In Ember die Worker-Adresse und den Zugangsschlüssel eintragen (auf jedem Gerät einmal den Schlüssel, die Adresse kommt per Sync).
+4. **Verbindung prüfen** – das Ergebnis ist ehrlich: verbunden mit Anzahl der Termine, Kalender leer, falscher Schlüssel, Worker nicht fertig eingerichtet, RWTHonline nicht erreichbar bzw. Link abgelaufen, Adresse nicht erlaubt (`ALLOWED_ORIGINS`) oder Worker nicht erreichbar.
 
-**Wichtig:** RWTHonline erlaubt den direkten Abruf des Abo-Links aus dem Browser nicht (fehlende CORS-Header). Es gibt zwei Wege:
+**Stundenplan neu laden** holt den Kalender sofort. Ohne Worker geht auch **.ics-Datei importieren** (Kalender in RWTHonline herunterladen; nicht automatisch aktuell). **Kalender entfernen** löscht Schlüssel und geladenen Stundenplan auf diesem Gerät und die Worker-Adresse auf allen Geräten.
 
-1. **Datei-Import** (ohne Einrichtung): Kalender in RWTHonline als `.ics` herunterladen und im Widget über „.ics-Datei importieren“ laden. Ist nicht automatisch aktuell, bei Änderungen erneut importieren.
-2. **Eigener Proxy** (automatisch aktuell): siehe nächster Abschnitt. Im Dashboard trägst du dann statt des RWTHonline-Links die Worker-Adresse ein.
-
-**Zum Testen ohne echten Link** als Link `examples/stundenplan-beispiel.ics` eintragen. Die Datei enthält erfundene Termine (wöchentliche und 14-tägige Serien, Zeitumstellung, Ausnahme, verlegter und abgesagter Termin, ganztägiger Termin).
+**Zum Testen ohne echten Link** als Worker-Adresse `examples/stundenplan-beispiel.ics` eintragen. Die Datei enthält erfundene Termine (wöchentliche und 14-tägige Serien, Zeitumstellung, Ausnahme, verlegter und abgesagter Termin, ganztägiger Termin).
 
 ### Proxy mit Cloudflare Workers einrichten
 
@@ -342,12 +360,11 @@ Der Worker (`proxy/cloudflare-worker/worker.js`) läuft in deinem eigenen Cloudf
    - optional Typ **Text**, Name `ALLOWED_ORIGINS`, Wert: deine Dashboard-Adressen ohne Pfad, kommagetrennt, z. B. `https://<benutzer>.github.io,http://localhost:8000`
 
    Speichern bzw. **Deploy** – die Werte gelten ab der nächsten Bereitstellung.
-5. **Testen:** Im Browser `https://dashboard-ical.<dein-subdomain>.workers.dev/?key=<ACCESS_KEY>` öffnen. Es sollte Text erscheinen, der mit `BEGIN:VCALENDAR` beginnt. Mögliche Antworten sonst: „Zugriff verweigert“ (Schlüssel falsch), „RWTHonline antwortet mit Fehler …“ bzw. „liefert keinen iCal-Kalender“ (Link falsch oder abgelaufen).
-6. **Im Dashboard eintragen:** Stundenplan → Einrichtung → genau diese Adresse inklusive `?key=…` als Link speichern.
+5. **Im Dashboard eintragen:** ⚙︎ → Kalender (RWTH) → Worker-Adresse `https://dashboard-ical.<dein-subdomain>.workers.dev/` und den Schlüssel getrennt eintragen → **Verbindung prüfen**.
 
 Alternative mit der Kommandozeile (benötigt Node.js): im Ordner `proxy/cloudflare-worker` `npx wrangler login`, `npx wrangler deploy`, dann `npx wrangler secret put ICAL_URL` und `npx wrangler secret put ACCESS_KEY` (Werte werden abgefragt, nicht in Dateien geschrieben). `.dev.vars` und `.wrangler/` sind in `.gitignore` eingetragen.
 
-Neuen RWTHonline-Link oder Schlüssel? Einfach das jeweilige Secret im Cloudflare-Dashboard überschreiben. Beim Wechsel des `ACCESS_KEY` auch den Link im Dashboard aktualisieren.
+Neuen RWTHonline-Link oder Schlüssel? Einfach das jeweilige Secret im Cloudflare-Dashboard überschreiben. Beim Wechsel des `ACCESS_KEY` auch den Schlüssel unter ⚙︎ → Kalender (RWTH) auf jedem Gerät aktualisieren. Für GitHub Pages in `ALLOWED_ORIGINS` auch `https://<benutzer>.github.io` eintragen. Am Worker-Code selbst ist nichts zu ändern: Er nimmt den Schlüssel schon als `Authorization`-Header an.
 
 ## Auf GitHub Pages veröffentlichen
 
