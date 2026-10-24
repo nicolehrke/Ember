@@ -98,13 +98,7 @@ export function calendarSettings() {
   drawState();
 
   return h('div', { class: 'settings-body' },
-    h('ol', { class: 'settings-steps' },
-      h('li', {}, 'In RWTHonline im Terminkalender unter Export/Abo (iCal) einen neuen Link erzeugen.'),
-      h('li', {}, 'Den Link im Cloudflare Worker als Secret ICAL_URL eintragen – nur dort, nirgends sonst.'),
-      h('li', {}, 'Hier die Worker-Adresse und den Zugangsschlüssel (Secret ACCESS_KEY) eintragen.'),
-      h('li', {}, '„Verbindung prüfen“ tippen.')),
-    h('label', { class: 'settings-field' }, h('span', { class: 'settings-label' }, 'Worker-Adresse'), workerInput,
-      h('span', { class: 'muted small' }, 'Öffentlich, wird zwischen deinen Geräten synchronisiert.')),
+    h('label', { class: 'settings-field' }, h('span', { class: 'settings-label' }, 'Worker-Adresse'), workerInput),
     h('div', { class: 'settings-field' }, h('span', { class: 'settings-label' }, 'Zugangsschlüssel'), key.element, keyState),
     h('div', { class: 'settings-actions' },
       h('button', { class: 'chip chip--accent', type: 'button', onclick: check }, 'Verbindung prüfen'),

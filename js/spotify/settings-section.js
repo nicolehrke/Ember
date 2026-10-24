@@ -1,6 +1,6 @@
 // Spotify-Bereich im Einstellungs-Panel: Client-ID, Weiterleitungs-Adresse, Verbinden/Trennen,
 // Tab-Titel-Schalter. Alles nur auf diesem Gerät gespeichert.
-import { h, confirmButton } from '../core/dom.js';
+import { h, confirmButton, infoToggle } from '../core/dom.js';
 import { load, save } from '../core/storage.js';
 import { onAuth, getClientId, setClientId, login, disconnectAll, redirectUri, tokenInfo, originProblem } from './auth.js';
 
@@ -61,14 +61,25 @@ export function spotifySettings() {
       await save(SETTINGS_KEY, { ...(await load(SETTINGS_KEY, {})), tabTitle: tabTitle.checked });
     });
 
+    // Kurzanleitung hinter dem ⓘ am Feld (ausführlich in der README unter „Musik (Spotify)“)
+    const help = infoToggle('Spotify einrichten',
+      h('ol', { class: 'settings-steps' },
+        h('li', {}, h('a', { href: 'https://developer.spotify.com/dashboard', target: '_blank', rel: 'noopener' }, 'developer.spotify.com/dashboard'), ' öffnen und anmelden.'),
+        h('li', {}, '„Create app“: Name ohne „Spotify“, bei den APIs „Web API“ und „Web Playback SDK“ ankreuzen.'),
+        h('li', {}, 'Die Weiterleitungs-Adresse unten (Kopieren) exakt als Redirect URI eintragen.'),
+        h('li', {}, 'Die Client ID kopieren und hier einfügen – ein Client-Secret braucht Ember nicht.'),
+        h('li', {}, '„Mit Spotify verbinden“ tippen und bei Spotify zustimmen.')),
+      h('p', {}, 'Die App läuft im Entwicklermodus: Trag dein eigenes Spotify-Konto in der App unter „User Management“ ein. Der Player braucht Spotify Premium. Client-ID und Anmeldung bleiben nur auf diesem Gerät.'));
+
     section.replaceChildren(...[
       h('p', { class: `settings-state is-${auth.status === 'connected' ? 'ok' : auth.status === 'error' || auth.status === 'expired' ? 'error' : 'off'}` },
         STATUS_TEXT[auth.status] ?? auth.status,
         info?.refreshExpiresAt ? ` · Anmeldung gültig bis ca. ${dateFmt.format(info.refreshExpiresAt)}` : ''),
       error,
-      auth.status !== 'connected' && h('label', { class: 'tt-label' }, 'Client-ID (nur auf diesem Gerät gespeichert)'),
+      auth.status !== 'connected' && h('div', { class: 'settings-label-row' }, h('span', { class: 'settings-label' }, 'Client-ID'), help.button),
+      auth.status !== 'connected' && help.panel,
       auth.status !== 'connected' && idForm,
-      auth.status !== 'connected' && h('p', { class: 'muted small' }, 'Diese Weiterleitungs-Adresse muss in deiner Spotify-App exakt so eingetragen sein:'),
+      auth.status !== 'connected' && h('span', { class: 'settings-label' }, 'Weiterleitungs-Adresse (Redirect URI)'),
       auth.status !== 'connected' && h('div', { class: 'settings-form' }, h('code', { class: 'settings-code' }, uri), copy),
       h('div', { class: 'settings-actions' },
         clientId && auth.status !== 'connected' && auth.status !== 'bad-origin' && connect,

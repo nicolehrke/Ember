@@ -666,6 +666,32 @@ input[type="password"] { width: 100%; }
 
 /* ---------- Einstellungen / Sync ---------- */
 .settings-panel { width: min(480px, calc(100vw - 32px)); }
+/* ⓘ: Erklärungen zugeklappt (infoToggle in js/core/dom.js) */
+.info-btn {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.info-btn:hover { color: var(--text); border-color: var(--border); }
+.info-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+.info-panel { margin: 0 0 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2); font-size: 0.88rem; display: grid; gap: 6px; }
+.info-panel[hidden] { display: none; }
+.info-panel p { margin: 0; }
+.info-panel a { color: var(--accent); }
+.settings-info { display: flex; justify-content: flex-end; margin: -4px 0 2px; }
+.settings-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+@media (pointer: coarse) { .info-btn { width: 40px; height: 40px; } }
 .settings-section { border-top: 1px solid var(--border); }
 .settings-section:last-child { border-bottom: 1px solid var(--border); }
 .settings-section > summary {
@@ -1764,6 +1790,7 @@ a.music-title:hover { text-decoration: underline; }
 .theme-subtitle { margin-top: 4px; }
 .theme-modes { margin: 10px 0 8px; }
 .theme-hint { margin: 0; }
+.theme-hint:empty { display: none; }
 
 /* ---------- Fokus-Ring (Lernzeit, freier Timer und Countdown) ---------- */
 .focus-dial { position: relative; width: 208px; height: 208px; margin: 4px auto 8px; }

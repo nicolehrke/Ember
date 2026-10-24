@@ -59,6 +59,8 @@ Welche Kacheln offen sind, speichert jedes Gerät für sich in `local/open` (wir
 
 Alles Einstellbare liegt im Panel hinter ⚙︎ oben rechts, in einklappbaren Bereichen (per Tastatur: Tab und Enter/Leertaste auf die Überschrift). Kacheln mit eigener Einrichtung öffnen den passenden Bereich direkt.
 
+Das Panel zeigt nur Status, Felder und Aktionen; Fehler und Warnungen stehen immer sichtbar da. Erklärungen und Schrittlisten liegen zugeklappt hinter einem **ⓘ** – einmal pro Bereich, bei Sync (GitHub-Token) und Spotify (Client-ID, mit Kurzanleitung) direkt am Feld. Der Baustein dafür ist `infoToggle()` in `js/core/dom.js`.
+
 | Bereich | Inhalt | Gespeichert |
 | --- | --- | --- |
 | **Darstellung** | Stil (Glut, Glas, Papier, Jarvis) und Hell/Dunkel – dasselbe wie das Palettensymbol oben | synchronisiert (`design`) |
@@ -266,7 +268,8 @@ Ember ist selbst ein Spotify-Wiedergabegerät („Ember“, Web Playback SDK). S
    Die passende Adresse für die gerade geöffnete Seite steht auch in Ember unter ⚙︎ → Musik (Spotify) (mit „Kopieren“).
 4. Bei **Which API/SDKs are you planning to use?** „Web API“ und „Web Playback SDK“ ankreuzen, speichern.
 5. Die **Client ID** kopieren (kein Client-Secret – Ember braucht und speichert keins).
-6. In Ember: ⚙︎ → Musik (Spotify) → Client-ID eintragen → **Mit Spotify verbinden** → bei Spotify zustimmen.
+6. **User Management:** Die App läuft im Entwicklermodus – dort dein eigenes Spotify-Konto (Name und E-Mail des Kontos) eintragen, sonst lehnt Spotify die Anmeldung ab. Der Player braucht Spotify Premium.
+7. In Ember: ⚙︎ → Musik (Spotify) → Client-ID eintragen → **Mit Spotify verbinden** → bei Spotify zustimmen.
 
 **Wichtig zu `127.0.0.1`:** Für den Browser ist `http://127.0.0.1:8000` eine andere Website als `http://localhost:8000` mit eigenem Speicher. Synchronisierte Daten holt der Gist-Sync (Token dort einmal eintragen); Lokales wie Kachelgrößen, Stundenplan-Link und die Spotify-Verbindung richtest du dort neu ein.
 

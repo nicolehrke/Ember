@@ -138,7 +138,7 @@ export function themeControls() {
     }
     hint.textContent = fixed
       ? `${STYLES[design.style].label} gibt es nur ${resolvedTheme() === 'dark' ? 'dunkel' : 'hell'} – der Schalter gilt für Glut.`
-      : 'System folgt der Einstellung des Geräts.';
+      : '';
   });
   drawMenu();
   return h('div', { class: 'theme-controls' },

@@ -104,7 +104,6 @@ export function lightSettings() {
       },
     }, '+ Button hinzufügen');
     list.replaceChildren(
-      h('p', { class: 'muted small' }, 'Der Kurzbefehl-Name muss genau so heißen wie der Kurzbefehl in der Kurzbefehle-App. Tastenkürzel wirken, solange kein Eingabefeld aktiv ist.'),
       h('ol', { class: 'light-rows' }, ...items.map((b, i) => row(b, i, items))),
       h('div', { class: 'study-form-row' }, add));
     if (focusKey) section.querySelector(`[data-focus="${focusKey}"]`)?.focus();

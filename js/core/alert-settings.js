@@ -54,7 +54,8 @@ export function alertSettings() {
     }, 'Testton');
 
     const capability = notificationCapability();
-    const notifyInfo = h('p', { class: 'muted small' }, capability.text);
+    // Nur Warnungen sichtbar; die allgemeine Erklärung steht im ⓘ des Bereichs
+    const notifyInfo = h('p', { class: 'settings-error' }, capability.available ? '' : capability.text);
     const notify = h('input', { type: 'checkbox', checked: Boolean(s.notify && capability.available && Notification.permission === 'granted'), disabled: !capability.available });
     notify.addEventListener('change', async () => {
       if (!notify.checked) return setAlertSettings({ notify: false });
@@ -90,7 +91,6 @@ export function alertSettings() {
       h('label', { class: 'pomo-check' }, wake, 'Bildschirm anlassen, solange ein Timer läuft oder ein Wecker in den nächsten 12 Stunden klingelt'),
       !wakeLockSupported() && h('p', { class: 'muted small' }, 'Dieser Browser kann den Bildschirm nicht anlassen.'),
       h('label', { class: 'pomo-check' }, title, 'Nächsten Timer/Wecker im Tab-Titel zeigen'),
-      h('p', { class: 'muted small' }, 'Timer und Wecker klingeln nur, solange Ember in einem Tab geöffnet ist.'),
     ].filter(Boolean));
   };
 

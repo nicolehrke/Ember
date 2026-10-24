@@ -51,6 +51,24 @@ export function secretField(attrs) {
   return { input, element: h('div', { class: 'settings-secret' }, input, toggle) };
 }
 
+// Zugeklappte Erklärung hinter einem ⓘ-Button: { button, panel }. Der Button steuert das Panel
+// (aria-expanded/aria-controls); content sind Elemente oder Texte. Fehler und Warnungen gehören
+// nicht hier hinein, die bleiben sichtbar.
+let infoCount = 0;
+export function infoToggle(label, ...content) {
+  const id = `info-${++infoCount}`;
+  const panel = h('div', { class: 'info-panel', id, hidden: true }, ...content);
+  const button = h('button', {
+    class: 'info-btn', type: 'button', 'aria-expanded': 'false', 'aria-controls': id,
+    'aria-label': `Erklärung: ${label}`, title: `Erklärung: ${label}`,
+  }, 'ⓘ');
+  button.addEventListener('click', () => {
+    panel.hidden = !panel.hidden;
+    button.setAttribute('aria-expanded', String(!panel.hidden));
+  });
+  return { button, panel };
+}
+
 // Escapen für Texte, die per innerHTML eingesetzt werden (z. B. API-Daten).
 const ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ENTITIES[c]);
