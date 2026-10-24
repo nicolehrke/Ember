@@ -8,6 +8,7 @@
 // Grabstein (status 'deleted') stehen und werden nach 30 Tagen aufgeräumt.
 import { h, confirmButton } from '../core/dom.js';
 import { setFact } from '../core/briefing.js';
+import { load, save } from '../core/storage.js';
 
 const TOMBSTONE_DAYS = 30;
 const UNDO_MS = 6000;
@@ -26,6 +27,47 @@ export function pruneTombstones(items, now = Date.now()) {
   const rest = { ...items };
   for (const i of old) delete rest[i.id];
   return rest;
+}
+
+// Duplikatlogik, gemeinsam für das Eingabefeld und addToShoppingList(): gleicher Name
+// (normalisiert: Groß/Klein, Leerzeichen) mit gleichem Status
+export const findByName = (items, name, status) =>
+  Object.values(items).find(i => i.status === status && normalize(i.name) === normalize(name));
+
+// Mehrere Artikel auf einmal (z. B. Rezept-Zutaten) mit derselben Logik wie das Eingabefeld:
+// Steht der Artikel schon offen auf der Liste, bleibt er (eine fehlende Menge wird ergänzt);
+// ein erledigter kommt zurück, sonst wird er neu angelegt. Zählt auch für „Häufig gekauft“.
+// Gibt { added, reopened, existing } zurück.
+export async function addToShoppingList(entries) {
+  const items = { ...(await load('shopping.items', {})) };
+  const history = { ...(await load('shopping.history', {})) };
+  const result = { added: 0, reopened: 0, existing: 0 };
+  for (const entry of entries) {
+    const name = clean(entry.name ?? '');
+    const qty = clean(entry.qty ?? '');
+    if (!name) continue;
+    const now = Date.now();
+    const open = findByName(items, name, 'open');
+    if (open) {
+      result.existing++;
+      if (!open.qty && qty) items[open.id] = { ...open, qty, updatedAt: now };
+      continue;
+    }
+    const doneItem = findByName(items, name, 'done');
+    if (doneItem) {
+      items[doneItem.id] = { ...doneItem, status: 'open', qty: qty || doneItem.qty, updatedAt: now };
+      result.reopened++;
+    } else {
+      const id = uid();
+      items[id] = { id, name, qty, status: 'open', addedAt: now, updatedAt: now };
+      result.added++;
+    }
+    const key = normalize(name);
+    history[key] = { ...history[key], key, name, count: (history[key]?.count ?? 0) + 1, lastAdded: now, updatedAt: now };
+  }
+  await save('shopping.items', items);
+  await save('shopping.history', history);
+  return result;
 }
 
 export default {
@@ -49,7 +91,7 @@ export default {
     }
 
     const byStatus = status => Object.values(items).filter(i => i.status === status);
-    const findOpen = name => byStatus('open').find(i => normalize(i.name) === normalize(name));
+    const findOpen = name => findByName(items, name, 'open');
 
     // ---------- Elemente ----------
     const input = h('input', {
@@ -93,7 +135,7 @@ export default {
         draw();
         return;
       }
-      const doneItem = byStatus('done').find(i => normalize(i.name) === normalize(name));
+      const doneItem = findByName(items, name, 'done');
       if (doneItem) await putItem({ ...doneItem, status: 'open' });
       else await putItem({ id: uid(), name, qty: '', status: 'open', addedAt: Date.now() });
       await remember(name);

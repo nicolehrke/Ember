@@ -49,7 +49,7 @@ proxy/cloudflare-worker Optionaler eigener Proxy für den RWTHonline-Kalender
 
 ## Bedienung: Dock
 
-Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Notizen, Musik und Licht sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Liniensymbolen und Beschriftung unter der Uhr (Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkauf, Notizen, Musik, Licht), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein; ihre Reihenfolge und Größe lassen sich frei anpassen (siehe „Layout anpassen“). Sind alle geschlossen, bleibt der Hauptbereich leer.
+Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkaufsliste, Rezepte, Notizen, Musik und Licht sind gleichartige Kacheln im Hauptbereich. Geöffnet und geschlossen werden sie über das Dock, die Leiste mit Liniensymbolen und Beschriftung unter der Uhr (Lernzeit, Aufgaben, Klausuren, Gewohnheiten, Mensa, Einkauf, Rezepte, Notizen, Musik, Licht), oder über das × in der Kachel. Geschlossene Kacheln verschwinden vollständig, laufen aber unsichtbar weiter – ein Lerntimer oder Pomodoro zählt also weiter. Mehrere Kacheln können gleichzeitig offen sein; ihre Reihenfolge und Größe lassen sich frei anpassen (siehe „Layout anpassen“). Sind alle geschlossen, bleibt der Hauptbereich leer.
 
 Neben dem Symbol zeigen die Dock-Buttons – auch bei geschlossener Kachel – ihren Stand: Lernzeit den laufenden Timer („● 12:34 Fokus“, „☕ 3:10 Kurze Pause“), Klausuren die Tage bis zur nächsten Klausur (falls eingeschaltet, 14 Tage vorher hervorgehoben). Gewohnheiten und Mensa zeigen nur ihr Symbol.
 
@@ -219,7 +219,7 @@ Die Lernzeit öffnest du über den Dock-Button „Lernzeit“. Läuft ein Timer,
 - Fächer anlegen, umbenennen, Farbe wechseln und löschen über „Fächer“.
 - Übersicht über heute und die Woche, Balkendiagramm Mo–So nach Fach, Wochen mit ‹ › durchblättern.
 - Unter „Einträge dieser Woche“ Einträge bearbeiten, löschen oder nachtragen.
-- Über ⚙︎ → Daten (oder „Daten“ in der Lernzeit-Kachel, das den Bereich öffnet) als JSON exportieren und importieren (zentral über `js/core/backup.js`, enthält auch Gewohnheiten, Klausuren, Notizen, Einkauf, Aufgaben und Licht-Buttons). Ein Import führt zusammen, statt zu überschreiben, und erzeugt keine Duplikate. Ältere Lernzeit-Exporte lassen sich weiter importieren.
+- Über ⚙︎ → Daten (oder „Daten“ in der Lernzeit-Kachel, das den Bereich öffnet) als JSON exportieren und importieren (zentral über `js/core/backup.js`, enthält auch Gewohnheiten, Klausuren, Notizen, Einkauf, Aufgaben, Licht-Buttons und Rezepte). Ein Import führt zusammen, statt zu überschreiben, und erzeugt keine Duplikate. Ältere Lernzeit-Exporte lassen sich weiter importieren.
 
 ## Gewohnheiten
 
@@ -251,6 +251,19 @@ Dock-Button 📋. Aufgabe eintippen und Enter – der Fokus bleibt im Feld für 
 - **Handy-Ansicht:** `…/?nur=einkauf` lädt nur die Einkaufsliste in voller Breite, ohne Kopfbereich und Dock (Link „Nur-Einkaufsliste-Ansicht“ unten in der Kachel). Auf iPhone/iPad in Safari öffnen → Teilen → „Zum Home-Bildschirm“ ergibt ein eigenes Symbol. Alle Bedienflächen sind mindestens 44 px groß, Eingabefelder nutzen 16 px Schrift (kein Zoom beim Antippen).
 - **Daten und Sync:** `shopping.items` mit einem Eintrag pro Artikel (ID, Name, Menge, Status offen/erledigt/gelöscht, Zeitstempel) und `shopping.history` mit einem Eintrag pro Artikelname (Häufigkeit, angeheftet/ausgeblendet). Der Gist-Sync führt beides Eintrag für Eintrag zusammen, pro Artikel gewinnt die jüngste Änderung. Gelöschte Artikel bleiben als Grabstein stehen, damit ein anderes Gerät sie nicht wiederherstellt, und werden nach 30 Tagen aufgeräumt. Beides ist im Export enthalten.
 - **Schlechter Empfang:** Jede Änderung wird sofort lokal gespeichert; der Sync zieht sie nach, sobald wieder Netz da ist. Einschränkungen: Die Seite muss geladen sein (ohne Netz neu laden geht nicht, es gibt noch keinen Offline-Cache für die Dateien), und ein Gerät, das länger als 30 Tage gar nicht synchronisiert hat, könnte gelöschte Artikel wieder einspielen. Zwei gleichzeitige Erhöhungen der Häufigkeit eines Artikels auf zwei Geräten zählen nur einmal.
+
+## Rezepte
+
+Eigene Rezepte als Kachel (Dock: Rezepte, Standardgröße M). Pro Rezept: Titel, Tags, Dauer (min), Portionen, Quelle (Link oder Text), Schritte (Freitext), Favorit und zuletzt gekocht; Zutaten werden strukturiert gespeichert als `{ amount, unit, name }`. Kein Foto.
+
+- **Anlegen und bearbeiten:** „+ Rezept“ im Kachelkopf. Zutaten eine pro Zeile, z. B. `200 g Spaghetti`, `½ TL Chiliflocken`, `1,5 TL Curry`, `Salz` – Menge (auch Brüche), Einheit (g, kg, ml, l, EL, TL, Prise, Stück, Dose, Zehe, Bund …) und Name werden erkannt. Tags mit Komma trennen.
+- **Finden:** Suche über Titel, Tags und Zutaten; Filter nach Tags, Höchstdauer und Favoriten (☆/★ an jedem Rezept).
+- **Detailansicht:** Antippen klappt das Rezept auf. Portionen mit −/+ umrechnen – nur die Anzeige ändert sich, das Rezept bleibt wie gespeichert („Original“ springt zurück).
+- **Zufall:** wählt aus den gerade gefilterten Rezepten und überspringt alles, was in den letzten 7 Tagen gekocht wurde; „Nochmal würfeln“, „Heute gekocht“ (setzt das Datum, ebenso in der Detailansicht).
+- **Zutaten auf die Einkaufsliste:** in der gewählten Portionszahl, mit derselben Duplikatlogik wie das Eingabefeld der Einkaufsliste (`addToShoppingList` in `shopping.js`): Steht ein Artikel schon offen drauf, bleibt er (eine fehlende Menge wird ergänzt), ein erledigter kommt zurück. Die Kachel meldet, wie viele neu dazukamen und wie viele schon drauf standen.
+- **Mensa-Kachel:** Gibt es Rezepte, steht dort „Heute selbst kochen? → Titel“ – ein Vorschlag, der pro Tag gleich bleibt (aus dem Datum berechnet, nicht zufällig). Antippen öffnet das Rezept.
+- **Größen:** S Suche, Zufall und kompakte Liste; M mit Filtern; L Liste zweispaltig.
+- **Daten:** `rezepte.list`, synchronisiert und im Export wie Einkaufsliste und Notizen: ein Eintrag pro Rezept mit Zeitstempel, gelöschte bleiben 30 Tage als Grabstein.
 
 ## Musik (Spotify)
 
@@ -382,6 +395,10 @@ Neuen RWTHonline-Link oder Schlüssel? Einfach das jeweilige Secret im Cloudflar
 3. Nach etwa einer Minute ist die Seite unter `https://<benutzer>.github.io/<repo>/` erreichbar.
 
 Die Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverändert ausliefert. Netlify funktioniert genauso: Ordner hochladen bzw. Repository verbinden, ohne Build-Befehl, Publish-Verzeichnis `/`.
+
+## Backlog
+
+- Rezept-Import aus einer URL (schema.org/Recipe aus der Webseite lesen) – braucht einen Proxy wie beim Kalender, weil Rezeptseiten keinen Abruf aus dem Browser erlauben (CORS).
 
 ## Datenquellen
 

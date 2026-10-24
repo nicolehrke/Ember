@@ -1907,6 +1907,73 @@ a.music-title:hover { text-decoration: underline; }
   .card[data-widget="licht"][data-size="m"] .light-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* ---------- Widget: Rezepte ---------- */
+.recipe-toolbar { display: flex; gap: 8px; }
+.recipe-search { flex: 1; }
+.recipe-dice { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.recipe-dice .ln-ic { width: 18px; height: 18px; }
+.recipe-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.recipe-filters .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.recipe-duration { width: auto; padding-block: 5px; font-size: 0.85rem; }
+.recipe-random:empty { display: none; }
+.recipe-pick { display: grid; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: var(--r-md); background: color-mix(in srgb, var(--accent) 8%, var(--surface-2)); }
+.recipe-pick p { margin: 0; }
+.recipe-pick-title { font-weight: 600; }
+.recipe-count { margin: 8px 0 0; }
+.recipe-count:empty { display: none; }
+.recipe-list { list-style: none; margin: 6px 0 0; padding: 0; }
+.recipe + .recipe { border-top: 1px solid var(--border); }
+.recipe-head { display: flex; align-items: center; gap: 4px; }
+.recipe-toggle {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  gap: 1px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.recipe-title { font-weight: 600; overflow-wrap: break-word; }
+.recipe-sub { font-size: 0.82rem; }
+.recipe-fav { font-size: 1.05rem; }
+.recipe-fav[aria-pressed="true"] { color: var(--accent); }
+.recipe-detail { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 2px 4px 14px; }
+/* Lange Beschriftungen (z. B. „Zutaten auf die Einkaufsliste (3 Portionen)“) dürfen umbrechen */
+.recipe-actions .chip { white-space: normal; text-align: left; }
+.recipe-pick .chip { white-space: normal; }
+.recipe-portions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.recipe-portions-value { min-width: 2ch; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.recipe-ingredients { margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+.recipe-steps { white-space: pre-line; line-height: 1.5; }
+.recipe-meta { margin: 0; }
+.recipe-meta a { color: var(--accent); }
+.recipe-notice { margin: 0; color: var(--ok); font-size: 0.9rem; }
+.recipe-empty { padding: 8px 0; }
+.recipe-form-slot:not(:empty) { margin-bottom: 12px; }
+.recipe-form { display: grid; gap: 10px; }
+.recipe-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.recipe-field { display: grid; gap: 2px; min-width: 0; }
+.recipe-field input[type="number"] { width: 100%; }
+.recipe-field input[type="text"], .recipe-field input[type="number"], .recipe-textarea { background: var(--surface-solid); }
+.recipe-textarea { min-height: 7em; }
+/* Größen: S = Zufall und Suche, M = mit Filtern und Liste, L = Liste zweispaltig */
+.card[data-widget="rezepte"][data-size="s"] .recipe-filters,
+.card[data-widget="rezepte"][data-size="s"] .recipe-count { display: none; }
+.card[data-widget="rezepte"][data-size="s"] .recipe-list { max-height: 320px; overflow-y: auto; overscroll-behavior: contain; }
+.card[data-widget="rezepte"][data-size="l"] .recipe-list { columns: 2 280px; column-gap: 24px; }
+.card[data-widget="rezepte"][data-size="l"] .recipe { break-inside: avoid; }
+
+/* Mensa: Vorschlag aus den eigenen Rezepten */
+.mensa-cook { display: block; width: 100%; min-height: 40px; margin: 8px 0 0; padding: 6px 10px; border: 1px dashed var(--border); border-radius: var(--r-md); background: none; color: var(--muted); font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
+.mensa-cook[hidden] { display: none; }
+.mensa-cook strong { color: var(--text); font-weight: 600; }
+.mensa-cook:hover { border-color: var(--accent); }
+
 /* ---------- Touch: Ziele mindestens 40 px (bestehende 44 px bleiben) ---------- */
 @media (pointer: coarse) {
   .icon-btn--sm { width: 40px; height: 40px; }

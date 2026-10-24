@@ -3,6 +3,8 @@
 import { h } from '../core/dom.js';
 import { fetchJSON } from '../core/http.js';
 import { setFact } from '../core/briefing.js';
+import { load as loadKey, subscribe } from '../core/storage.js';
+import { dailyPick, isoDay, OPEN_EVENT } from './rezepte.js';
 
 const API = 'https://openmensa.org/api/v2';
 
@@ -163,7 +165,20 @@ export default {
     const hours = h('p', { class: 'mensa-hours' });
     // Link zum Speiseplan beim Studierendenwerk (für Mensen ohne OpenMensa-Daten)
     const link = h('a', { class: 'chip mensa-link', target: '_blank', rel: 'noopener', hidden: true }, 'Speiseplan beim Studierendenwerk ↗');
-    container.append(select, hours, link, nav, hint, list);
+    // „Heute selbst kochen?“ – ein pro Tag gleichbleibender Vorschlag aus den eigenen Rezepten
+    const cook = h('button', { class: 'mensa-cook', type: 'button', hidden: true });
+    let cookId = null;
+    cook.addEventListener('click', () => { if (cookId) document.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: cookId })); });
+    const drawCook = recipes => {
+      const recipe = dailyPick(recipes, isoDay());
+      cookId = recipe?.id ?? null;
+      cook.hidden = !recipe;
+      if (recipe) cook.replaceChildren('Heute selbst kochen? → ', h('strong', {}, recipe.title));
+    };
+    const refreshCook = async () => drawCook(await loadKey('rezepte.list', {}));
+    ctx.onCleanup(subscribe('rezepte.list', drawCook));
+
+    container.append(select, hours, cook, link, nav, hint, list);
 
     // Öffnungsstatus; die ganze Woche als Tooltip
     const drawHours = () => {
@@ -266,7 +281,8 @@ export default {
     });
 
     container.mensaLoad = load;
-    ctx.every(60 * 1000, drawHours);
+    ctx.every(60 * 1000, () => { drawHours(); refreshCook(); });
+    refreshCook();
     await load();
   },
 

@@ -67,7 +67,7 @@ export function initSettings(root) {
       p(notificationCapability().text),
     ]),
     section('daten', 'Daten', 'Export, Import, Layout zurücksetzen', dataSettings(), [
-      p('Der Export sichert Lernzeit, Gewohnheiten, Klausuren, Notizen, Einkaufsliste, Aufgaben und Licht-Buttons in einer JSON-Datei – ohne Tokens oder Schlüssel. Ein Import führt zusammen, statt zu überschreiben.'),
+      p('Der Export sichert Lernzeit, Gewohnheiten, Klausuren, Notizen, Einkaufsliste, Aufgaben, Licht-Buttons und Rezepte in einer JSON-Datei – ohne Tokens oder Schlüssel. Ein Import führt zusammen, statt zu überschreiben.'),
       p('Layout zurücksetzen stellt die Standardreihenfolge (alle Geräte) und die Standardgrößen (dieses Gerät) wieder her.'),
     ]));
   root.append(button, panel);

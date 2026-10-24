@@ -9,6 +9,7 @@ import habits from './habits.js';
 import exams from './exams.js';
 import notes from './notes.js';
 import shopping from './shopping.js';
+import rezepte from './rezepte.js';
 import todos from './todos.js';
 import music from './music.js';
 import licht from './licht.js';
@@ -24,6 +25,7 @@ export default [
   habits,
   mensa,
   shopping,
+  rezepte,
   notes,
   music,
   licht,
