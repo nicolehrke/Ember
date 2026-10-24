@@ -1,6 +1,6 @@
 # Ember
 
-Ember ist ein persönliches Dashboard für das Studium an der RWTH Aachen: reine statische Seite aus HTML, CSS und Vanilla-JavaScript (ES-Module), ohne Build-Step und ohne Abhängigkeiten.
+Ember ist ein persönliches Dashboard: reine statische Seite aus HTML, CSS und Vanilla-JavaScript (ES-Module), ohne Build-Step und ohne Abhängigkeiten.
 
 ## Lokal starten
 
