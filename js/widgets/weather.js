@@ -4,6 +4,7 @@ import { h, esc } from '../core/dom.js';
 import { fetchJSON } from '../core/http.js';
 import { popover } from '../core/popover.js';
 import { icon } from './weather-icons.js';
+import { setFact } from '../core/briefing.js';
 
 const DEFAULT_LOCATION = { name: 'Aachen', region: 'Nordrhein-Westfalen, Deutschland', lat: 50.7766, lon: 6.0834 };
 const HOURS_AHEAD = 24;
@@ -55,12 +56,28 @@ function forecastUrl(loc) {
     latitude: loc.lat,
     longitude: loc.lon,
     current: 'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day',
-    hourly: 'temperature_2m,weather_code,precipitation_probability,is_day',
+    hourly: 'temperature_2m,weather_code,precipitation_probability,wind_speed_10m,is_day',
     daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
     timezone: 'auto',
     forecast_days: 7,
   });
   return `https://api.open-meteo.com/v1/forecast?${params}`;
+}
+
+// Wetter-Fakt für das Briefing: nur bei relevanter Lage, gerechnet über die restlichen Stunden von heute.
+function reportWeather(data) {
+  const { current, hourly } = data;
+  const currentHour = current.time.slice(0, 13) + ':00';
+  const day = current.time.slice(0, 10);
+  const idx = hourly.time.map((t, i) => i).filter(i => hourly.time[i] >= currentHour && hourly.time[i].startsWith(day));
+  if (!idx.length) return setFact('weather', null);
+  const of = list => idx.map(i => list?.[i]).filter(v => v != null);
+  const rain = Math.max(0, ...of(hourly.precipitation_probability));
+  const max = round(Math.max(...of(hourly.temperature_2m)));
+  const min = round(Math.min(...of(hourly.temperature_2m)));
+  const wind = Math.max(current.wind_speed_10m ?? 0, ...of(hourly.wind_speed_10m));
+  const kind = rain >= 50 ? 'rain' : min <= 0 ? 'frost' : max >= 28 ? 'hot' : wind >= 40 ? 'wind' : null;
+  setFact('weather', kind ? { kind, max, min, rain: Math.round(rain / 10) * 10, wind: Math.round(wind / 5) * 5 } : null);
 }
 
 function geocodeUrl(query) {
@@ -93,6 +110,7 @@ async function update(container, ctx) {
   toggle.title = `${now.text} in ${loc.name} – Details anzeigen`;
 
   drawDetails(container.querySelector('.wx-details'), loc, data);
+  reportWeather(data);
   container.querySelector('.wx-status').textContent = problem
     ? `${problem} Daten von ${timeFmt.format(fetchedAt)} Uhr.`
     : `Aktualisiert ${timeFmt.format(fetchedAt)} Uhr · Open-Meteo`;

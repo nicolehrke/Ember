@@ -11,6 +11,7 @@
 import { h, confirmButton } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { addToShoppingList } from './shopping.js';
+import { setFact } from '../core/briefing.js';
 
 const TOMBSTONE_DAYS = 30;
 const RECENT_DAYS = 7; // so lange überspringt der Zufall Gekochtes
@@ -331,9 +332,13 @@ export default {
     // Änderungen von anderen Geräten (Sync) oder Tabs – nicht mitten im Bearbeiten
     ctx.store.subscribe('list', value => {
       list = value ?? {};
+      report();
       if (!editing) draw();
     });
 
+    // Tagesvorschlag fürs Briefing (derselbe wie in der Mensa-Kachel)
+    function report() { const recipe = dailyPick(list); setFact('rezept', recipe ? { title: recipe.title } : null); }
+    report();
     draw();
   },
 };

@@ -173,6 +173,7 @@ export default {
       const recipe = dailyPick(recipes, isoDay());
       cookId = recipe?.id ?? null;
       cook.hidden = !recipe;
+      setFact('rezept', recipe ? { title: recipe.title } : null);
       if (recipe) cook.replaceChildren('Heute selbst kochen? → ', h('strong', {}, recipe.title));
     };
     const refreshCook = async () => drawCook(await loadKey('rezepte.list', {}));
