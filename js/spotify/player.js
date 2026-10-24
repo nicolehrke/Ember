@@ -87,6 +87,7 @@ export function ensurePlayer() {
     const ready = new Promise((resolve, reject) => {
       player.addListener('ready', ({ device_id: id }) => {
         setState({ status: 'ready', deviceId: id, message: '', volume });
+        registerMediaSession();
         resolve(id);
       });
       player.addListener('initialization_error', ({ message }) => {
@@ -113,6 +114,7 @@ export function ensurePlayer() {
     return ready;
   })().catch(err => {
     // Fehlgeschlagenes Gerät abräumen, damit beim nächsten Versuch kein zweites entsteht
+    offMediaSession?.();
     try { player?.disconnect(); } catch { /* egal */ }
     player = null;
     // Hat ein SDK-Ereignis den Grund schon geliefert, diesen weitergeben (keine Doppelmeldung)
@@ -154,6 +156,48 @@ export function activateAudio() {
   try { player?.activateElement(); } catch { /* ältere SDK-Versionen */ }
 }
 
+// ---------- Medientasten (Media Session API) ----------
+// Tastatur-Medientasten, AirPods und Sperrbildschirm steuern die Seite über navigator.mediaSession.
+let offMediaSession = null;
+function registerMediaSession() {
+  const session = navigator.mediaSession;
+  if (!session || offMediaSession) return;
+  const handlers = {
+    play: () => { if (state.paused) togglePlay(); },
+    pause: () => { if (!state.paused) togglePlay(); },
+    previoustrack: () => previous(),
+    nexttrack: () => next(),
+    seekto: ({ seekTime }) => { if (seekTime != null) seek(seekTime * 1000); },
+  };
+  for (const [action, fn] of Object.entries(handlers)) {
+    try { session.setActionHandler(action, fn); } catch { /* Aktion nicht unterstützt */ }
+  }
+  let trackId;
+  const sync = s => {
+    if (s.track?.id !== trackId) {
+      trackId = s.track?.id;
+      session.metadata = s.track
+        ? new MediaMetadata({ title: s.track.name, artist: s.track.artists, album: s.track.album, artwork: s.track.image ? [{ src: s.track.image }] : [] })
+        : null;
+    }
+    session.playbackState = !s.track ? 'none' : s.paused ? 'paused' : 'playing';
+    if (s.track && s.duration) {
+      try { session.setPositionState({ duration: s.duration / 1000, position: Math.min(s.position, s.duration) / 1000, playbackRate: 1 }); } catch { /* ungültige Werte */ }
+    }
+  };
+  listeners.add(sync);
+  sync(state);
+  offMediaSession = () => {
+    listeners.delete(sync);
+    for (const action of Object.keys(handlers)) {
+      try { session.setActionHandler(action, null); } catch { /* egal */ }
+    }
+    session.metadata = null;
+    session.playbackState = 'none';
+    offMediaSession = null;
+  };
+}
+
 // Wiedergabe auf „Ember“ übertragen.
 export async function playHere() {
   activateAudio();
@@ -188,6 +232,7 @@ export async function remoteState() {
 
 // Gerät abmelden (beim Trennen).
 export function shutdown() {
+  offMediaSession?.();
   try { player?.disconnect(); } catch { /* egal */ }
   player = null;
   setState({ status: 'idle', message: '', deviceId: null, track: null, paused: true, position: 0, duration: 0 });
